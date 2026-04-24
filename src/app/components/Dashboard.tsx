@@ -1,63 +1,9 @@
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { Plus, UserCircle, Mail, TrendingUp, TrendingDown } from "lucide-react";
-
-const stats = [
-  { label: "Total Applications", value: "42", change: "+12%", trend: "up", color: "text-foreground" },
-  { label: "Draft", value: "8", change: "3 pending", trend: "neutral", color: "text-muted-foreground" },
-  { label: "Applied", value: "18", change: "+5 this week", trend: "up", color: "text-blue-600" },
-  { label: "Interviews", value: "6", change: "+2", trend: "up", color: "text-green-600" },
-  { label: "Rejected", value: "10", change: "-", trend: "neutral", color: "text-muted-foreground" },
-];
-
-const recentApplications = [
-  {
-    id: 1,
-    company: "Vercel",
-    role: "Senior Frontend Engineer",
-    status: "Interview",
-    created: "2026-04-10",
-    updated: "2026-04-11"
-  },
-  {
-    id: 2,
-    company: "Linear",
-    role: "Product Engineer",
-    status: "Applied",
-    created: "2026-04-09",
-    updated: "2026-04-09"
-  },
-  {
-    id: 3,
-    company: "Stripe",
-    role: "Full Stack Developer",
-    status: "Applied",
-    created: "2026-04-08",
-    updated: "2026-04-10"
-  },
-  {
-    id: 4,
-    company: "Figma",
-    role: "Software Engineer",
-    status: "Draft",
-    created: "2026-04-07",
-    updated: "2026-04-11"
-  },
-  {
-    id: 5,
-    company: "Notion",
-    role: "Frontend Developer",
-    status: "Interview",
-    created: "2026-04-05",
-    updated: "2026-04-10"
-  },
-];
-
-const recentActivity = [
-  { action: "Updated application for Vercel", time: "2 hours ago" },
-  { action: "Created new application for Linear", time: "1 day ago" },
-  { action: "Generated cover letter for Stripe", time: "2 days ago" },
-  { action: "Updated profile information", time: "3 days ago" },
-];
+import { Plus, UserCircle, Mail, TrendingUp } from "lucide-react";
+import { ApiError } from "../../services/httpClient";
+import { getAllApplications } from "../../services/jobApplicationService";
+import type { JobApplication } from "../../types/jobApplications";
 
 function getStatusColor(status: string) {
   switch (status) {
@@ -75,6 +21,87 @@ function getStatusColor(status: string) {
 }
 
 export function Dashboard() {
+  const [applications, setApplications] = useState<JobApplication[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDashboardData() {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const data = await getAllApplications();
+
+        if (isMounted) {
+          setApplications(data);
+        }
+      } catch (err) {
+        if (isMounted) {
+          if (err instanceof ApiError) {
+            setError(err.message);
+          } else {
+            setError("Unable to load dashboard data.");
+          }
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadDashboardData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const stats = useMemo(() => {
+    const total = applications.length;
+    const draft = applications.filter((application) => application.status === "Draft").length;
+    const applied = applications.filter((application) => application.status === "Applied").length;
+    const interview = applications.filter((application) => application.status === "Interview").length;
+    const rejected = applications.filter((application) => application.status === "Rejected").length;
+
+    return [
+      { label: "Total Applications", value: String(total), change: "Live data", color: "text-foreground" },
+      { label: "Draft", value: String(draft), change: "Current", color: "text-muted-foreground" },
+      { label: "Applied", value: String(applied), change: "Current", color: "text-blue-600" },
+      { label: "Interviews", value: String(interview), change: "Current", color: "text-green-600" },
+      { label: "Rejected", value: String(rejected), change: "Current", color: "text-muted-foreground" },
+    ];
+  }, [applications]);
+
+  const recentApplications = useMemo(() => {
+    return [...applications]
+      .sort(
+        (left, right) =>
+          new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()
+      )
+      .slice(0, 5);
+  }, [applications]);
+
+  const recentActivity = useMemo(() => {
+    return recentApplications.slice(0, 4).map((application) => ({
+      action: `Updated ${application.companyName} (${application.status})`,
+      time: formatDate(application.updatedAt),
+    }));
+  }, [recentApplications]);
+
+  function formatDate(value: string): string {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleDateString();
+  }
+
   return (
     <div className="p-8 space-y-8">
       <div>
@@ -91,13 +118,24 @@ export function Dashboard() {
               {stat.value}
             </div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              {stat.trend === "up" && <TrendingUp className="w-3 h-3" />}
-              {stat.trend === "down" && <TrendingDown className="w-3 h-3" />}
+              <TrendingUp className="w-3 h-3" />
               <span>{stat.change}</span>
             </div>
           </div>
         ))}
       </div>
+
+      {isLoading && (
+        <div className="rounded-lg border border-border bg-white px-4 py-3 text-sm text-muted-foreground">
+          Loading dashboard data...
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm px-4 py-3">
+          {error}
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="flex gap-3">
@@ -138,19 +176,23 @@ export function Dashboard() {
               <div key={app.id} className="p-6 hover:bg-[#fafafa] transition-colors">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium mb-1">{app.company}</h3>
-                    <p className="text-sm text-muted-foreground">{app.role}</p>
+                    <h3 className="font-medium mb-1">{app.companyName}</h3>
+                    <p className="text-sm text-muted-foreground">{app.roleTitle}</p>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs border ${getStatusColor(app.status)}`}>
                     {app.status}
                   </span>
                 </div>
                 <div className="flex gap-4 text-xs text-muted-foreground mt-3">
-                  <span>Created {app.created}</span>
-                  <span>Updated {app.updated}</span>
+                  <span>Created {formatDate(app.createdAt)}</span>
+                  <span>Updated {formatDate(app.updatedAt)}</span>
                 </div>
               </div>
             ))}
+
+            {!isLoading && !error && recentApplications.length === 0 && (
+              <div className="p-6 text-sm text-muted-foreground">No applications yet.</div>
+            )}
           </div>
         </div>
 
@@ -169,6 +211,10 @@ export function Dashboard() {
                 </div>
               </div>
             ))}
+
+            {!isLoading && !error && recentActivity.length === 0 && (
+              <div className="text-sm text-muted-foreground">No recent activity yet.</div>
+            )}
           </div>
         </div>
       </div>
