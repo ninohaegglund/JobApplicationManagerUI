@@ -9,11 +9,24 @@ import { CoverLetterTemplates } from "./components/CoverLetterTemplates";
 import { TextBlocks } from "./components/TextBlocks";
 import { Exports } from "./components/Exports";
 import { Settings } from "./components/Settings";
+import { ProtectedRoute } from "../components/auth/ProtectedRoute";
+import { Login } from "../pages/auth/Login";
+import { Register } from "../pages/auth/Register";
+
+function ProtectedAppLayout() {
+  return (
+    <ProtectedRoute>
+      <Root />
+    </ProtectedRoute>
+  );
+}
 
 export const router = createBrowserRouter([
+  { path: "/login", Component: Login },
+  { path: "/register", Component: Register },
   {
     path: "/",
-    Component: Root,
+    Component: ProtectedAppLayout,
     children: [
       { index: true, Component: Dashboard },
       { path: "applications", Component: Applications },

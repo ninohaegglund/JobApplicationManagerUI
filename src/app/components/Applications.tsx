@@ -1,74 +1,22 @@
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { Plus, Filter, MoreVertical } from "lucide-react";
+import { Plus, Filter, Trash2 } from "lucide-react";
+import { ApiError } from "../../services/httpClient";
+import {
+  deleteApplication,
+  getAllApplications,
+  updateApplicationStatus,
+} from "../../services/jobApplicationService";
+import type { ApplicationStatus, JobApplication } from "../../types/jobApplications";
 
-const applications = [
-  {
-    id: 1,
-    company: "Vercel",
-    role: "Senior Frontend Engineer",
-    status: "Interview",
-    created: "2026-04-10",
-    updated: "2026-04-11"
-  },
-  {
-    id: 2,
-    company: "Linear",
-    role: "Product Engineer",
-    status: "Applied",
-    created: "2026-04-09",
-    updated: "2026-04-09"
-  },
-  {
-    id: 3,
-    company: "Stripe",
-    role: "Full Stack Developer",
-    status: "Applied",
-    created: "2026-04-08",
-    updated: "2026-04-10"
-  },
-  {
-    id: 4,
-    company: "Figma",
-    role: "Software Engineer",
-    status: "Draft",
-    created: "2026-04-07",
-    updated: "2026-04-11"
-  },
-  {
-    id: 5,
-    company: "Notion",
-    role: "Frontend Developer",
-    status: "Interview",
-    created: "2026-04-05",
-    updated: "2026-04-10"
-  },
-  {
-    id: 6,
-    company: "GitHub",
-    role: "Staff Engineer",
-    status: "Applied",
-    created: "2026-04-03",
-    updated: "2026-04-08"
-  },
-  {
-    id: 7,
-    company: "Shopify",
-    role: "Senior Developer",
-    status: "Rejected",
-    created: "2026-03-28",
-    updated: "2026-04-05"
-  },
-  {
-    id: 8,
-    company: "Airbnb",
-    role: "Frontend Engineer",
-    status: "Interview",
-    created: "2026-03-25",
-    updated: "2026-04-09"
-  },
+const filters: Array<"All" | ApplicationStatus> = [
+  "All",
+  "Draft",
+  "Applied",
+  "Interview",
+  "Offer",
+  "Rejected",
 ];
-
-const filters = ["All", "Draft", "Applied", "Interview", "Rejected"];
 
 function getStatusColor(status: string) {
   switch (status) {
@@ -86,6 +34,114 @@ function getStatusColor(status: string) {
 }
 
 export function Applications() {
+  const [applications, setApplications] = useState<JobApplication[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]>("All");
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | number | null>(null);
+  const [deletingId, setDeletingId] = useState<string | number | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadApplications() {
+      setIsLoading(true);
+      setError(null);
+      setActionError(null);
+
+      try {
+        const data = await getAllApplications();
+
+        if (isMounted) {
+          setApplications(data);
+        }
+      } catch (err) {
+        if (isMounted) {
+          if (err instanceof ApiError) {
+            setError(err.message);
+          } else {
+            setError("Unable to load applications.");
+          }
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadApplications();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filteredApplications = useMemo(() => {
+    if (activeFilter === "All") {
+      return applications;
+    }
+
+    return applications.filter((application) => application.status === activeFilter);
+  }, [activeFilter, applications]);
+
+  function formatDate(value: string): string {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleDateString();
+  }
+
+  async function handleDelete(id: string | number) {
+    setActionError(null);
+    setDeletingId(id);
+
+    try {
+      await deleteApplication(id);
+      setApplications((previous) => previous.filter((application) => application.id !== id));
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setActionError(err.message);
+      } else {
+        setActionError("Unable to delete application.");
+      }
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  async function handleStatusChange(id: string | number, status: ApplicationStatus) {
+    setActionError(null);
+    setUpdatingStatusId(id);
+
+    try {
+      await updateApplicationStatus(id, { status });
+      setApplications((previous) =>
+        previous.map((application) =>
+          application.id === id
+            ? {
+                ...application,
+                status,
+                updatedAt: new Date().toISOString(),
+              }
+            : application
+        )
+      );
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setActionError(err.message);
+      } else {
+        setActionError("Unable to update application status.");
+      }
+    } finally {
+      setUpdatingStatusId(null);
+    }
+  }
+
   return (
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
@@ -112,8 +168,9 @@ export function Applications() {
           {filters.map((filter) => (
             <button
               key={filter}
+              onClick={() => setActiveFilter(filter)}
               className={`px-3 py-2 rounded-lg text-sm transition-colors ${
-                filter === "All"
+                filter === activeFilter
                   ? "bg-foreground text-background"
                   : "bg-white border border-border hover:bg-[#fafafa]"
               }`}
@@ -126,6 +183,12 @@ export function Applications() {
 
       {/* Table */}
       <div className="bg-white rounded-lg border border-border overflow-hidden">
+        {actionError && (
+          <div className="mx-6 mt-6 rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm px-3 py-2">
+            {actionError}
+          </div>
+        )}
+
         <table className="w-full">
           <thead>
             <tr className="border-b border-border bg-[#fafafa]">
@@ -138,20 +201,65 @@ export function Applications() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {applications.map((app) => (
-              <tr key={app.id} className="hover:bg-[#fafafa] transition-colors">
-                <td className="px-6 py-4 font-medium">{app.company}</td>
-                <td className="px-6 py-4 text-muted-foreground">{app.role}</td>
-                <td className="px-6 py-4">
-                  <span className={`px-3 py-1 rounded-full text-xs border ${getStatusColor(app.status)}`}>
-                    {app.status}
-                  </span>
+            {isLoading && (
+              <tr>
+                <td colSpan={6} className="px-6 py-8 text-sm text-muted-foreground text-center">
+                  Loading applications...
                 </td>
-                <td className="px-6 py-4 text-sm text-muted-foreground">{app.created}</td>
-                <td className="px-6 py-4 text-sm text-muted-foreground">{app.updated}</td>
+              </tr>
+            )}
+
+            {!isLoading && error && (
+              <tr>
+                <td colSpan={6} className="px-6 py-8 text-sm text-red-700 bg-red-50 text-center">
+                  {error}
+                </td>
+              </tr>
+            )}
+
+            {!isLoading && !error && filteredApplications.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-6 py-8 text-sm text-muted-foreground text-center">
+                  No applications found.
+                </td>
+              </tr>
+            )}
+
+            {!isLoading && !error && filteredApplications.map((app) => (
+              <tr key={app.id} className="hover:bg-[#fafafa] transition-colors">
+                <td className="px-6 py-4 font-medium">{app.companyName}</td>
+                <td className="px-6 py-4 text-muted-foreground">{app.roleTitle}</td>
                 <td className="px-6 py-4">
-                  <button className="p-1 hover:bg-muted rounded transition-colors">
-                    <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                  <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1 rounded-full text-xs border ${getStatusColor(app.status)}`}>
+                      {app.status}
+                    </span>
+                    <select
+                      value={app.status}
+                      onChange={(event) =>
+                        void handleStatusChange(app.id, event.target.value as ApplicationStatus)
+                      }
+                      disabled={updatingStatusId === app.id || deletingId === app.id}
+                      className="px-2 py-1 text-xs bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
+                    >
+                      <option value="Draft">Draft</option>
+                      <option value="Applied">Applied</option>
+                      <option value="Interview">Interview</option>
+                      <option value="Offer">Offer</option>
+                      <option value="Rejected">Rejected</option>
+                    </select>
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-sm text-muted-foreground">{formatDate(app.createdAt)}</td>
+                <td className="px-6 py-4 text-sm text-muted-foreground">{formatDate(app.updatedAt)}</td>
+                <td className="px-6 py-4">
+                  <button
+                    type="button"
+                    onClick={() => void handleDelete(app.id)}
+                    disabled={deletingId === app.id || updatingStatusId === app.id}
+                    className="p-1 hover:bg-muted rounded transition-colors disabled:opacity-60"
+                  >
+                    <Trash2 className="w-4 h-4 text-muted-foreground" />
                   </button>
                 </td>
               </tr>

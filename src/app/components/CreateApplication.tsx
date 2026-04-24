@@ -1,5 +1,9 @@
-import { Link } from "react-router";
+import { FormEvent, useState } from "react";
+import { Link, useNavigate } from "react-router";
 import { ArrowLeft, Save } from "lucide-react";
+import { createApplication } from "../../services/jobApplicationService";
+import { ApiError } from "../../services/httpClient";
+import type { ApplicationStatus } from "../../types/jobApplications";
 
 const cvVersions = [
   { id: 1, name: "Standard CV - Full Stack", version: "v2.3", date: "2026-04-10" },
@@ -20,6 +24,49 @@ const coverLetterTemplates = [
 ];
 
 export function CreateApplication() {
+  const navigate = useNavigate();
+
+  const [companyName, setCompanyName] = useState("");
+  const [roleTitle, setRoleTitle] = useState("");
+  const [status, setStatus] = useState<ApplicationStatus>("Draft");
+  const [notes, setNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!companyName.trim() || !roleTitle.trim()) {
+      setError("Company name and role title are required.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      await createApplication({
+        companyName: companyName.trim(),
+        roleTitle: roleTitle.trim(),
+        status,
+        notes: notes.trim(),
+      });
+
+      setSuccessMessage("Application created successfully.");
+      navigate("/applications", { replace: true });
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Unable to save application. Please try again.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <div className="p-8 space-y-6">
       <div>
@@ -32,6 +79,7 @@ export function CreateApplication() {
       </div>
 
       <div className="max-w-4xl space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Information */}
         <div className="bg-white rounded-lg border border-border p-6 space-y-5">
           <h2 className="text-[17px] font-medium">Basic Information</h2>
@@ -42,7 +90,10 @@ export function CreateApplication() {
               <input
                 type="text"
                 placeholder="e.g., Vercel"
+                value={companyName}
+                onChange={(event) => setCompanyName(event.target.value)}
                 className="w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
+                disabled={isSubmitting}
               />
             </div>
             <div className="space-y-2">
@@ -50,19 +101,27 @@ export function CreateApplication() {
               <input
                 type="text"
                 placeholder="e.g., Senior Frontend Engineer"
+                value={roleTitle}
+                onChange={(event) => setRoleTitle(event.target.value)}
                 className="w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
+                disabled={isSubmitting}
               />
             </div>
           </div>
 
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">Status</label>
-            <select className="w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border">
-              <option>Draft</option>
-              <option>Applied</option>
-              <option>Interview</option>
-              <option>Offer</option>
-              <option>Rejected</option>
+            <select
+              value={status}
+              onChange={(event) => setStatus(event.target.value as ApplicationStatus)}
+              className="w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
+              disabled={isSubmitting}
+            >
+              <option value="Draft">Draft</option>
+              <option value="Applied">Applied</option>
+              <option value="Interview">Interview</option>
+              <option value="Offer">Offer</option>
+              <option value="Rejected">Rejected</option>
             </select>
           </div>
 
@@ -71,9 +130,24 @@ export function CreateApplication() {
             <textarea
               rows={4}
               placeholder="Add any notes about this application..."
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
               className="w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border resize-none"
+              disabled={isSubmitting}
             />
           </div>
+
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm px-3 py-2">
+              {error}
+            </div>
+          )}
+
+          {successMessage && (
+            <div className="rounded-lg border border-green-200 bg-green-50 text-green-700 text-sm px-3 py-2">
+              {successMessage}
+            </div>
+          )}
         </div>
 
         {/* CV Document Selection */}
@@ -131,9 +205,13 @@ export function CreateApplication() {
 
         {/* Actions */}
         <div className="flex gap-3 pt-4">
-          <button className="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors">
+          <button
+            type="submit"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-60"
+            disabled={isSubmitting}
+          >
             <Save className="w-4 h-4" />
-            Save Application
+            {isSubmitting ? "Saving..." : "Save Application"}
           </button>
           <Link
             to="/applications"
@@ -142,6 +220,7 @@ export function CreateApplication() {
             Cancel
           </Link>
         </div>
+        </form>
       </div>
     </div>
   );
