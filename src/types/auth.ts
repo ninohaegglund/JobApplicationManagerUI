@@ -16,6 +16,13 @@ export interface RegisterResponse {
   message: string;
 }
 
+export interface AuthUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
 export interface AuthApiError {
   message: string;
   status?: number;
@@ -24,6 +31,7 @@ export interface AuthApiError {
 export interface AuthContextValue {
   token: string | null;
   isAuthenticated: boolean;
+  user: AuthUser | null;
   login: (payload: LoginRequest) => Promise<void>;
   logout: () => void;
   register: (payload: RegisterRequest) => Promise<void>;

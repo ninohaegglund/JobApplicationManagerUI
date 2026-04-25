@@ -14,6 +14,8 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
 }
 
 const TOKEN_STORAGE_KEY = "auth_token";
+export const AUTH_TOKEN_CLEARED_EVENT = "auth-token-cleared";
+let isRedirectingToLogin = false;
 
 export function getStoredToken(): string | null {
   return localStorage.getItem(TOKEN_STORAGE_KEY);
@@ -24,7 +26,25 @@ export function storeToken(token: string): void {
 }
 
 export function clearStoredToken(): void {
+  const hadToken = localStorage.getItem(TOKEN_STORAGE_KEY) !== null;
   localStorage.removeItem(TOKEN_STORAGE_KEY);
+
+  if (hadToken) {
+    window.dispatchEvent(new Event(AUTH_TOKEN_CLEARED_EVENT));
+  }
+}
+
+export function handleUnauthorizedResponse(status: number): void {
+  if (status !== 401) {
+    return;
+  }
+
+  clearStoredToken();
+
+  if (window.location.pathname !== "/login" && !isRedirectingToLogin) {
+    isRedirectingToLogin = true;
+    window.location.assign("/login");
+  }
 }
 
 export async function apiRequest<T>(
@@ -43,6 +63,7 @@ export async function apiRequest<T>(
     const token = getStoredToken();
 
     if (!token) {
+      handleUnauthorizedResponse(401);
       throw new ApiError("Authentication required.", 401);
     }
 
@@ -59,6 +80,8 @@ export async function apiRequest<T>(
   const data = isJson ? await response.json() : null;
 
   if (!response.ok) {
+    handleUnauthorizedResponse(response.status);
+
     const message =
       (data &&
         typeof data === "object" &&
