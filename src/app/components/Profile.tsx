@@ -34,7 +34,7 @@ export function Profile() {
               <label className="text-sm text-muted-foreground">First Name</label>
               <input
                 type="text"
-                defaultValue="Jane"
+                defaultValue="Nino"
                 className="w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
               />
             </div>
@@ -42,7 +42,7 @@ export function Profile() {
               <label className="text-sm text-muted-foreground">Last Name</label>
               <input
                 type="text"
-                defaultValue="Doe"
+                defaultValue="Hägglund"
                 className="w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
               />
             </div>
@@ -53,7 +53,7 @@ export function Profile() {
               <label className="text-sm text-muted-foreground">Email</label>
               <input
                 type="email"
-                defaultValue="jane@example.com"
+                defaultValue="ninomh99@gmail.com"
                 className="w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
               />
             </div>
@@ -61,7 +61,7 @@ export function Profile() {
               <label className="text-sm text-muted-foreground">Phone Number</label>
               <input
                 type="tel"
-                defaultValue="+1 (555) 123-4567"
+                defaultValue="+46 72 152 98 60"
                 className="w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
               />
             </div>
@@ -71,7 +71,7 @@ export function Profile() {
             <label className="text-sm text-muted-foreground">Address</label>
             <input
               type="text"
-              defaultValue="123 Main Street"
+              defaultValue="Tövädersgatan 13D"
               className="w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
             />
           </div>
@@ -81,7 +81,7 @@ export function Profile() {
               <label className="text-sm text-muted-foreground">Postal Code</label>
               <input
                 type="text"
-                defaultValue="10001"
+                defaultValue="754 31"
                 className="w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
               />
             </div>
@@ -89,7 +89,7 @@ export function Profile() {
               <label className="text-sm text-muted-foreground">City</label>
               <input
                 type="text"
-                defaultValue="New York"
+                defaultValue="Uppsala"
                 className="w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
               />
             </div>
@@ -97,7 +97,7 @@ export function Profile() {
               <label className="text-sm text-muted-foreground">Country</label>
               <input
                 type="text"
-                defaultValue="United States"
+                defaultValue="Sweden"
                 className="w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
               />
             </div>
@@ -108,7 +108,7 @@ export function Profile() {
               <label className="text-sm text-muted-foreground">Birth Year</label>
               <input
                 type="number"
-                defaultValue="1992"
+                defaultValue="1999"
                 className="w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
               />
             </div>
@@ -134,7 +134,7 @@ export function Profile() {
               <input
                 type="url"
                 placeholder="https://linkedin.com/in/..."
-                defaultValue="https://linkedin.com/in/janedoe"
+                defaultValue="https://www.linkedin.com/in/nino-h%C3%A4gglund-441740307/"
                 className="w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
               />
             </div>
@@ -143,7 +143,7 @@ export function Profile() {
               <input
                 type="url"
                 placeholder="https://github.com/..."
-                defaultValue="https://github.com/janedoe"
+                defaultValue="https://github.com/ninohaegglund"
                 className="w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
               />
             </div>
