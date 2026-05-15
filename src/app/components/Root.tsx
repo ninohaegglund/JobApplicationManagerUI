@@ -1,11 +1,11 @@
+import { useMemo } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard,
   Briefcase,
+  CalendarDays,
   User,
   FileText,
-  Mail,
-  FileStack,
   Download,
   Settings as SettingsIcon,
   Search,
@@ -14,14 +14,23 @@ import {
   LogOut,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationsContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 const navigation = [
   { name: "Dashboard", path: "/", icon: LayoutDashboard },
   { name: "Applications", path: "/applications", icon: Briefcase },
+  { name: "Calendar", path: "/calendar", icon: CalendarDays },
+  { name: "Notifications", path: "/notifications", icon: Bell },
   { name: "Profile", path: "/profile", icon: User },
   { name: "CV Documents", path: "/cv-documents", icon: FileText },
-  { name: "Cover Letter Templates", path: "/cover-letters", icon: Mail },
-  { name: "Text Blocks", path: "/text-blocks", icon: FileStack },
   { name: "Exports", path: "/exports", icon: Download },
   { name: "Settings", path: "/settings", icon: SettingsIcon },
 ];
@@ -30,12 +39,38 @@ export function Root() {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
+  const { notifications, unreadCount } = useNotifications();
 
   const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : "Authenticated User";
   const initials = user
     ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
     : "U";
   const subtitle = user?.email ?? "Identity account";
+
+  const latestUnreadNotifications = useMemo(() => {
+    return [...notifications]
+      .filter((notification) => !notification.read)
+      .sort(
+        (left, right) =>
+          new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+      )
+      .slice(0, 3);
+  }, [notifications]);
+
+  function formatNotificationTime(value: string): string {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleString([], {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
 
   function handleLogout() {
     logout();
@@ -114,9 +149,52 @@ export function Root() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="p-2 hover:bg-[#fafafa] rounded-lg transition-colors">
-              <Bell className="w-5 h-5 text-muted-foreground" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="relative p-2 hover:bg-[#fafafa] rounded-lg transition-colors">
+                  <Bell className="w-5 h-5 text-muted-foreground" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-medium flex items-center justify-center">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 p-2">
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  Unread notifications
+                </DropdownMenuLabel>
+                {latestUnreadNotifications.length === 0 && (
+                  <div className="px-2 py-3 text-sm text-muted-foreground">
+                    No unread notifications.
+                  </div>
+                )}
+                {latestUnreadNotifications.map((notification) => (
+                  <DropdownMenuItem
+                    key={notification.id}
+                    onSelect={(event) => event.preventDefault()}
+                    className="flex flex-col items-start gap-1 px-2 py-2 cursor-default"
+                  >
+                    <span className="text-sm font-medium text-foreground">
+                      {notification.title}
+                    </span>
+                    <span className="text-xs text-muted-foreground line-clamp-2">
+                      {notification.message}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {formatNotificationTime(notification.createdAt)}
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={() => navigate("/notifications")}
+                  className="cursor-pointer"
+                >
+                  View all notifications
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 

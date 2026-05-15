@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { Plus, UserCircle, Mail, TrendingUp } from "lucide-react";
+import { Plus, UserCircle, TrendingUp } from "lucide-react";
 import { ApiError } from "../../services/httpClient";
 import { getAllApplications } from "../../services/jobApplicationService";
 import type { JobApplication } from "../../types/jobApplications";
+import { calendarEvents, type CalendarEventType } from "../data/jobTrackerMockData";
 
 function getStatusColor(status: string) {
   switch (status) {
@@ -18,6 +19,40 @@ function getStatusColor(status: string) {
     default:
       return "bg-gray-50 text-gray-700 border-gray-200";
   }
+}
+
+function getEventTypeStyles(type: CalendarEventType): string {
+  switch (type) {
+    case "Interview":
+      return "bg-green-50 text-green-700 border-green-200";
+    case "Follow-up":
+      return "bg-blue-50 text-blue-700 border-blue-200";
+    case "Deadline":
+      return "bg-red-50 text-red-700 border-red-200";
+    case "Technical test":
+      return "bg-purple-50 text-purple-700 border-purple-200";
+    case "Phone call":
+      return "bg-amber-50 text-amber-700 border-amber-200";
+    case "Reminder":
+      return "bg-slate-50 text-slate-700 border-slate-200";
+    default:
+      return "bg-gray-50 text-gray-700 border-gray-200";
+  }
+}
+
+function formatEventDateTime(value: string): string {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export function Dashboard() {
@@ -92,6 +127,18 @@ export function Dashboard() {
     }));
   }, [recentApplications]);
 
+  const upcomingEvents = useMemo(() => {
+    const now = new Date().getTime();
+
+    return [...calendarEvents]
+      .filter((event) => new Date(event.startsAt).getTime() >= now)
+      .sort(
+        (left, right) =>
+          new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime()
+      )
+      .slice(0, 3);
+  }, []);
+
   function formatDate(value: string): string {
     const date = new Date(value);
 
@@ -153,13 +200,6 @@ export function Dashboard() {
           <UserCircle className="w-4 h-4" />
           Manage Profile
         </Link>
-        <Link
-          to="/cover-letters"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-border rounded-lg hover:bg-[#fafafa] transition-colors"
-        >
-          <Mail className="w-4 h-4" />
-          Cover Letter Templates
-        </Link>
       </div>
 
       <div className="grid grid-cols-3 gap-6">
@@ -196,25 +236,67 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="bg-white rounded-lg border border-border">
-          <div className="p-6 border-b border-border">
-            <h2 className="text-[17px] font-medium">Recent Activity</h2>
-          </div>
-          <div className="p-6 space-y-4">
-            {recentActivity.map((item, index) => (
-              <div key={index} className="flex gap-3">
-                <div className="w-2 h-2 rounded-full bg-muted mt-2" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm mb-1">{item.action}</p>
-                  <p className="text-xs text-muted-foreground">{item.time}</p>
+        <div className="space-y-6">
+          {/* Upcoming Events */}
+          <div className="bg-white rounded-lg border border-border">
+            <div className="p-6 border-b border-border flex items-center justify-between">
+              <h2 className="text-[17px] font-medium">Upcoming Events</h2>
+              <Link to="/calendar" className="text-sm text-muted-foreground hover:text-foreground">
+                View calendar
+              </Link>
+            </div>
+            <div className="p-6 space-y-4">
+              {upcomingEvents.map((event) => (
+                <div key={event.id} className="rounded-lg border border-border p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium">{event.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatEventDateTime(event.startsAt)}
+                      </p>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded border ${getEventTypeStyles(event.type)}`}>
+                      {event.type}
+                    </span>
+                  </div>
+                  {event.application && (
+                    <p className="text-xs text-muted-foreground">
+                      {event.application.company}
+                      {event.application.role ? ` • ${event.application.role}` : ""}
+                    </p>
+                  )}
+                  {event.location && (
+                    <p className="text-xs text-muted-foreground">{event.location}</p>
+                  )}
                 </div>
-              </div>
-            ))}
+              ))}
 
-            {!isLoading && !error && recentActivity.length === 0 && (
-              <div className="text-sm text-muted-foreground">No recent activity yet.</div>
-            )}
+              {upcomingEvents.length === 0 && (
+                <div className="text-sm text-muted-foreground">No upcoming events yet.</div>
+              )}
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="bg-white rounded-lg border border-border">
+            <div className="p-6 border-b border-border">
+              <h2 className="text-[17px] font-medium">Recent Activity</h2>
+            </div>
+            <div className="p-6 space-y-4">
+              {recentActivity.map((item, index) => (
+                <div key={index} className="flex gap-3">
+                  <div className="w-2 h-2 rounded-full bg-muted mt-2" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm mb-1">{item.action}</p>
+                    <p className="text-xs text-muted-foreground">{item.time}</p>
+                  </div>
+                </div>
+              ))}
+
+              {!isLoading && !error && recentActivity.length === 0 && (
+                <div className="text-sm text-muted-foreground">No recent activity yet.</div>
+              )}
+            </div>
           </div>
         </div>
       </div>
