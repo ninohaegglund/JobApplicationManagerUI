@@ -19,6 +19,7 @@ export interface CalendarEvent {
     role?: string;
   };
   location?: string;
+  notes?: string;
 }
 
 export const calendarEvents: CalendarEvent[] = [
