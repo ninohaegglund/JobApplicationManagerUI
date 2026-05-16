@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { ApiError } from "../../services/httpClient";
 import {
@@ -110,6 +110,20 @@ function formatTimeInput(value: string): string {
 
 function buildDateTime(date: string, time: string): string {
   return `${date}T${time}:00`;
+}
+
+function getIsoWeekNumber(date: Date): number {
+  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayOfWeek = utcDate.getUTCDay() || 7;
+
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - dayOfWeek);
+
+  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+  const weekNumber = Math.ceil(
+    ((utcDate.getTime() - yearStart.getTime()) / 86400000 + 1) / 7
+  );
+
+  return weekNumber;
 }
 
 function getEventTypeLabel(value: number): CalendarEventTypeLabel {
@@ -808,6 +822,12 @@ export function Calendar() {
     dayCells.push(new Date(visibleDate.getFullYear(), visibleDate.getMonth(), day));
   }
 
+  const dayRows: Array<Array<Date | null>> = [];
+
+  for (let index = 0; index < dayCells.length; index += 7) {
+    dayRows.push(dayCells.slice(index, index + 7));
+  }
+
   function handlePreviousMonth() {
     setVisibleDate((previous) =>
       new Date(previous.getFullYear(), previous.getMonth() - 1, 1)
@@ -1036,7 +1056,8 @@ export function Calendar() {
             </div>
           </div>
 
-          <div className="grid grid-cols-7 text-xs text-muted-foreground">
+          <div className="grid grid-cols-8 text-xs text-muted-foreground">
+            <div className="px-2 py-1 text-[10px]">v.</div>
             {weekDays.map((day) => (
               <div key={day} className="px-2 py-1">
                 {day}
@@ -1044,30 +1065,42 @@ export function Calendar() {
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-2">
-            {dayCells.map((date, index) => {
-              if (!date) {
-                return (
-                  <div
-                    key={`empty-${index}`}
-                    className="min-h-[110px] rounded-lg border border-dashed border-border bg-[#fafafa]"
-                  />
-                );
-              }
-
-              const dateKey = toDateKey(date);
-              const eventsForDay = eventsByDate.get(dateKey) ?? [];
-              const isToday = dateKey === todayKey;
+          <div className="grid grid-cols-8 gap-2">
+            {dayRows.map((week, rowIndex) => {
+              const firstDate = week.find((date) => date !== null);
+              const weekNumber = firstDate ? getIsoWeekNumber(firstDate) : null;
 
               return (
-                <CalendarDayCell
-                  key={dateKey}
-                  date={date}
-                  events={eventsForDay}
-                  isToday={isToday}
-                  onCreate={openCreateModal}
-                  onSelectEvent={(event) => setSelectedEvent(event)}
-                />
+                <Fragment key={`week-${rowIndex}`}>
+                  <div className="min-h-[110px] rounded-lg border border-dashed border-border bg-[#fafafa] flex items-start justify-center pt-2 text-[10px] text-muted-foreground">
+                    {weekNumber ? `v.${weekNumber}` : ""}
+                  </div>
+                  {week.map((date, index) => {
+                    if (!date) {
+                      return (
+                        <div
+                          key={`empty-${rowIndex}-${index}`}
+                          className="min-h-[110px] rounded-lg border border-dashed border-border bg-[#fafafa]"
+                        />
+                      );
+                    }
+
+                    const dateKey = toDateKey(date);
+                    const eventsForDay = eventsByDate.get(dateKey) ?? [];
+                    const isToday = dateKey === todayKey;
+
+                    return (
+                      <CalendarDayCell
+                        key={dateKey}
+                        date={date}
+                        events={eventsForDay}
+                        isToday={isToday}
+                        onCreate={openCreateModal}
+                        onSelectEvent={(event) => setSelectedEvent(event)}
+                      />
+                    );
+                  })}
+                </Fragment>
               );
             })}
           </div>
