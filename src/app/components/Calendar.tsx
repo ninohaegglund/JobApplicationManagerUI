@@ -683,16 +683,19 @@ function CalendarEventDetailsModal({
 }
 
 export function Calendar() {
-  const today = new Date();
-  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-  const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  const [visibleDate, setVisibleDate] = useState<Date>(
+    () => new Date()
+  );
+  const realToday = new Date();
+  const monthStart = new Date(visibleDate.getFullYear(), visibleDate.getMonth(), 1);
+  const monthEnd = new Date(visibleDate.getFullYear(), visibleDate.getMonth() + 1, 0);
   const monthLabel = monthStart.toLocaleDateString([], {
     month: "long",
     year: "numeric",
   });
   const startDayIndex = (monthStart.getDay() + 6) % 7;
   const daysInMonth = monthEnd.getDate();
-  const todayKey = toDateKey(today);
+  const todayKey = toDateKey(realToday);
 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([]);
@@ -802,7 +805,24 @@ export function Calendar() {
   }
 
   for (let day = 1; day <= daysInMonth; day += 1) {
-    dayCells.push(new Date(today.getFullYear(), today.getMonth(), day));
+    dayCells.push(new Date(visibleDate.getFullYear(), visibleDate.getMonth(), day));
+  }
+
+  function handlePreviousMonth() {
+    setVisibleDate((previous) =>
+      new Date(previous.getFullYear(), previous.getMonth() - 1, 1)
+    );
+  }
+
+  function handleNextMonth() {
+    setVisibleDate((previous) =>
+      new Date(previous.getFullYear(), previous.getMonth() + 1, 1)
+    );
+  }
+
+  function handleToday() {
+    const today = new Date();
+    setVisibleDate(new Date(today.getFullYear(), today.getMonth(), 1));
   }
 
   function openCreateModal(date: Date) {
@@ -988,7 +1008,32 @@ export function Calendar() {
                 <p className="text-xs text-muted-foreground">Loading events...</p>
               )}
             </div>
-            <div className="text-xs text-muted-foreground">Job search schedule</div>
+            <div className="flex items-center gap-3">
+              <div className="text-xs text-muted-foreground">Job search schedule</div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handlePreviousMonth}
+                  className="px-3 py-1.5 text-xs bg-white border border-border rounded-lg hover:bg-[#fafafa] transition-colors"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={handleToday}
+                  className="px-3 py-1.5 text-xs bg-white border border-border rounded-lg hover:bg-[#fafafa] transition-colors"
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextMonth}
+                  className="px-3 py-1.5 text-xs bg-white border border-border rounded-lg hover:bg-[#fafafa] transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-7 text-xs text-muted-foreground">
