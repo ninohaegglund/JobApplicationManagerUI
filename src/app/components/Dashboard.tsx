@@ -2,9 +2,36 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Plus, UserCircle, TrendingUp } from "lucide-react";
 import { ApiError } from "../../services/httpClient";
+import { getUpcomingCalendarEvents } from "../../services/calendarEventsService";
 import { getAllApplications } from "../../services/jobApplicationService";
+import type {
+  CalendarEventResponse,
+  CalendarEventTypeLabel,
+} from "../../types/calendarEvents";
 import type { JobApplication } from "../../types/jobApplications";
-import { calendarEvents, type CalendarEventType } from "../data/jobTrackerMockData";
+
+const eventTypeValueToLabel: Record<number, CalendarEventTypeLabel> = {
+  0: "Interview",
+  1: "Follow-up",
+  2: "Deadline",
+  3: "Technical test",
+  4: "Phone call",
+  5: "Reminder",
+  6: "Other",
+};
+
+interface DashboardCalendarEvent {
+  id: number;
+  title: string;
+  type: CalendarEventTypeLabel;
+  startsAt: string;
+  application?: {
+    id?: number | null;
+    company: string;
+    role?: string;
+  };
+  location?: string;
+}
 
 function getStatusColor(status: string) {
   switch (status) {
@@ -21,7 +48,7 @@ function getStatusColor(status: string) {
   }
 }
 
-function getEventTypeStyles(type: CalendarEventType): string {
+function getEventTypeStyles(type: CalendarEventTypeLabel): string {
   switch (type) {
     case "Interview":
       return "bg-green-50 text-green-700 border-green-200";
@@ -38,6 +65,32 @@ function getEventTypeStyles(type: CalendarEventType): string {
     default:
       return "bg-gray-50 text-gray-700 border-gray-200";
   }
+}
+
+function getEventTypeLabel(value: number): CalendarEventTypeLabel {
+  return eventTypeValueToLabel[value] ?? "Other";
+}
+
+function normalizeCalendarEvent(item: CalendarEventResponse): DashboardCalendarEvent {
+  const companyName = item.companyName?.trim();
+  const jobTitle = item.jobTitle?.trim();
+  const jobApplicationId = item.jobApplicationId ?? undefined;
+  const hasApplicationInfo = Boolean(jobApplicationId || companyName || jobTitle);
+
+  return {
+    id: item.id,
+    title: item.title,
+    type: getEventTypeLabel(item.eventType),
+    startsAt: item.startDateTime,
+    application: hasApplicationInfo
+      ? {
+          id: jobApplicationId,
+          company: companyName || "Linked application",
+          role: jobTitle ?? undefined,
+        }
+      : undefined,
+    location: item.location ?? undefined,
+  };
 }
 
 function formatEventDateTime(value: string): string {
@@ -57,8 +110,11 @@ function formatEventDateTime(value: string): string {
 
 export function Dashboard() {
   const [applications, setApplications] = useState<JobApplication[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<DashboardCalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUpcomingLoading, setIsUpcomingLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [upcomingError, setUpcomingError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -88,7 +144,34 @@ export function Dashboard() {
       }
     }
 
+    async function loadUpcomingEvents() {
+      setIsUpcomingLoading(true);
+      setUpcomingError(null);
+
+      try {
+        const data = await getUpcomingCalendarEvents();
+
+        if (isMounted) {
+          setUpcomingEvents(data.map(normalizeCalendarEvent).slice(0, 3));
+        }
+      } catch (err) {
+        if (isMounted) {
+          if (err instanceof ApiError) {
+            setUpcomingError(err.message);
+          } else {
+            setUpcomingError("Unable to load upcoming events.");
+          }
+          setUpcomingEvents([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsUpcomingLoading(false);
+        }
+      }
+    }
+
     void loadDashboardData();
+    void loadUpcomingEvents();
 
     return () => {
       isMounted = false;
@@ -126,18 +209,6 @@ export function Dashboard() {
       time: formatDate(application.updatedAt),
     }));
   }, [recentApplications]);
-
-  const upcomingEvents = useMemo(() => {
-    const now = new Date().getTime();
-
-    return [...calendarEvents]
-      .filter((event) => new Date(event.startsAt).getTime() >= now)
-      .sort(
-        (left, right) =>
-          new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime()
-      )
-      .slice(0, 3);
-  }, []);
 
   function formatDate(value: string): string {
     const date = new Date(value);
@@ -246,32 +317,41 @@ export function Dashboard() {
               </Link>
             </div>
             <div className="p-6 space-y-4">
-              {upcomingEvents.map((event) => (
-                <div key={event.id} className="rounded-lg border border-border p-4 space-y-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium">{event.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatEventDateTime(event.startsAt)}
-                      </p>
-                    </div>
-                    <span className={`text-xs px-2 py-1 rounded border ${getEventTypeStyles(event.type)}`}>
-                      {event.type}
-                    </span>
-                  </div>
-                  {event.application && (
-                    <p className="text-xs text-muted-foreground">
-                      {event.application.company}
-                      {event.application.role ? ` • ${event.application.role}` : ""}
-                    </p>
-                  )}
-                  {event.location && (
-                    <p className="text-xs text-muted-foreground">{event.location}</p>
-                  )}
-                </div>
-              ))}
+              {isUpcomingLoading && (
+                <div className="text-sm text-muted-foreground">Loading upcoming events...</div>
+              )}
 
-              {upcomingEvents.length === 0 && (
+              {upcomingError && (
+                <div className="text-sm text-red-600">{upcomingError}</div>
+              )}
+
+              {!isUpcomingLoading && !upcomingError &&
+                upcomingEvents.map((event) => (
+                  <div key={event.id} className="rounded-lg border border-border p-4 space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium">{event.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatEventDateTime(event.startsAt)}
+                        </p>
+                      </div>
+                      <span className={`text-xs px-2 py-1 rounded border ${getEventTypeStyles(event.type)}`}>
+                        {event.type}
+                      </span>
+                    </div>
+                    {event.application && (
+                      <p className="text-xs text-muted-foreground">
+                        {event.application.company}
+                        {event.application.role ? ` • ${event.application.role}` : ""}
+                      </p>
+                    )}
+                    {event.location && (
+                      <p className="text-xs text-muted-foreground">{event.location}</p>
+                    )}
+                  </div>
+                ))}
+
+              {!isUpcomingLoading && !upcomingError && upcomingEvents.length === 0 && (
                 <div className="text-sm text-muted-foreground">No upcoming events yet.</div>
               )}
             </div>
