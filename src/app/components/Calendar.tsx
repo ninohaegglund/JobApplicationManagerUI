@@ -1114,10 +1114,12 @@ export function Calendar() {
             </Link>
           </div>
           <div className="p-6">
-            <UpcomingEventsList
-              events={upcomingEvents}
-              isLoading={isLoading || isUpcomingLoading}
-            />
+            <div className="max-h-[560px] overflow-y-auto pr-2">
+              <UpcomingEventsList
+                events={upcomingEvents}
+                isLoading={isLoading || isUpcomingLoading}
+              />
+            </div>
           </div>
         </div>
       </div>
