@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-import { apiRequest } from "./httpClient";
+import { ApiError, apiRequest, getStoredToken, handleUnauthorizedResponse } from "./httpClient";
 import type {
   CreateJobApplicationRequest,
   JobApplication,
@@ -9,6 +9,49 @@ import type {
 
 const JOB_APPLICATION_API_BASE_URL =
   import.meta.env.VITE_JOB_APPLICATION_API_BASE_URL ?? "https://localhost:7269";
+
+function getAuthToken(): string {
+  const token = getStoredToken();
+
+  if (!token) {
+    handleUnauthorizedResponse(401);
+    throw new ApiError("Authentication required.", 401);
+  }
+
+  return token;
+}
+
+function parseJsonErrorPayload(data: unknown, fallbackStatus: number): ApiError {
+  let message = `Request failed with status ${fallbackStatus}`;
+
+  if (data && typeof data === "object") {
+    if ("message" in data && typeof data.message === "string" && data.message) {
+      message = data.message;
+    } else if ("title" in data && typeof data.title === "string" && data.title) {
+      message = data.title;
+    }
+  }
+
+  return new ApiError(message, fallbackStatus);
+}
+
+function parseContentDispositionFileName(contentDisposition: string | null): string | null {
+  if (!contentDisposition) {
+    return null;
+  }
+
+  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    return decodeURIComponent(utf8Match[1]);
+  }
+
+  const asciiMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+  if (asciiMatch?.[1]) {
+    return asciiMatch[1];
+  }
+
+  return null;
+}
 
 export async function createApplication(
   payload: CreateJobApplicationRequest
@@ -70,4 +113,29 @@ export async function updateApplicationStatus(
       requiresAuth: true,
     }
   );
+}
+
+export async function exportJobApplications(): Promise<{ blob: Blob; fileName: string }> {
+  const response = await fetch(`${JOB_APPLICATION_API_BASE_URL}/api/JobApplications/export`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${getAuthToken()}`,
+    },
+  });
+
+  if (!response.ok) {
+    const isJson = response.headers.get("content-type")?.includes("application/json");
+    const payload = isJson ? await response.json() : null;
+    handleUnauthorizedResponse(response.status);
+    throw parseJsonErrorPayload(payload, response.status);
+  }
+
+  const contentDisposition = response.headers.get("content-disposition");
+  const fileName =
+    parseContentDispositionFileName(contentDisposition) || "job-applications.xlsx";
+
+  return {
+    blob: await response.blob(),
+    fileName,
+  };
 }

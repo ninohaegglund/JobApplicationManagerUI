@@ -1,99 +1,73 @@
-import { Download, FileText, File } from "lucide-react";
-
-const exports = [
-  {
-    id: 1,
-    filename: "Vercel_Application_CoverLetter.docx",
-    application: "Vercel - Senior Frontend Engineer",
-    exportDate: "2026-04-11",
-    fileType: "DOCX",
-    fileSize: "42 KB"
-  },
-  {
-    id: 2,
-    filename: "Linear_Application_Package.pdf",
-    application: "Linear - Product Engineer",
-    exportDate: "2026-04-09",
-    fileType: "PDF",
-    fileSize: "156 KB"
-  },
-  {
-    id: 3,
-    filename: "Stripe_CoverLetter.docx",
-    application: "Stripe - Full Stack Developer",
-    exportDate: "2026-04-08",
-    fileType: "DOCX",
-    fileSize: "38 KB"
-  },
-  {
-    id: 4,
-    filename: "Figma_Application.pdf",
-    application: "Figma - Software Engineer",
-    exportDate: "2026-04-07",
-    fileType: "PDF",
-    fileSize: "145 KB"
-  },
-  {
-    id: 5,
-    filename: "Notion_CoverLetter.docx",
-    application: "Notion - Frontend Developer",
-    exportDate: "2026-04-05",
-    fileType: "DOCX",
-    fileSize: "41 KB"
-  },
-];
+import { useState } from "react";
+import { Download } from "lucide-react";
+import { ApiError } from "../../services/httpClient";
+import { exportJobApplications } from "../../services/jobApplicationService";
 
 export function Exports() {
+  const [isExporting, setIsExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleExportApplications() {
+    if (isExporting) {
+      return;
+    }
+
+    setError(null);
+    setIsExporting(true);
+
+    try {
+      const result = await exportJobApplications();
+      const objectUrl = URL.createObjectURL(result.blob);
+      const anchor = window.document.createElement("a");
+
+      anchor.href = objectUrl;
+      anchor.download = result.fileName;
+      window.document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Unable to export applications.");
+      }
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   return (
     <div className="p-8 space-y-6">
-      <div>
-        <h1 className="text-[28px] font-medium mb-1">Exports</h1>
-        <p className="text-muted-foreground">Download generated documents and cover letters</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-[28px] font-medium mb-1">Exports</h1>
+          <p className="text-muted-foreground">Download your job application data</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void handleExportApplications()}
+          disabled={isExporting}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-60"
+        >
+          <Download className="w-4 h-4" />
+          {isExporting ? "Exporting..." : "Export to Excel"}
+        </button>
       </div>
 
-      <div className="bg-white rounded-lg border border-border overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border bg-[#fafafa]">
-              <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">File</th>
-              <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Related Application</th>
-              <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Export Date</th>
-              <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Type</th>
-              <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Size</th>
-              <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {exports.map((exp) => (
-              <tr key={exp.id} className="hover:bg-[#fafafa] transition-colors">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-muted rounded flex items-center justify-center flex-shrink-0">
-                      {exp.fileType === "PDF" ? (
-                        <File className="w-4 h-4 text-muted-foreground" />
-                      ) : (
-                        <FileText className="w-4 h-4 text-muted-foreground" />
-                      )}
-                    </div>
-                    <span className="font-medium text-sm">{exp.filename}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-sm text-muted-foreground">{exp.application}</td>
-                <td className="px-6 py-4 text-sm text-muted-foreground">{exp.exportDate}</td>
-                <td className="px-6 py-4">
-                  <span className="px-2 py-1 bg-muted text-xs rounded">{exp.fileType}</span>
-                </td>
-                <td className="px-6 py-4 text-sm text-muted-foreground">{exp.fileSize}</td>
-                <td className="px-6 py-4">
-                  <button className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors">
-                    <Download className="w-3.5 h-3.5" />
-                    Download
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm px-3 py-2">
+          {error}
+        </div>
+      )}
+
+      <div className="bg-white rounded-lg border border-border">
+        <div className="p-6 space-y-2">
+          <h2 className="text-sm font-medium">Job applications</h2>
+          <p className="text-sm text-muted-foreground">
+            Export all applications as an Excel (.xlsx) file.
+          </p>
+        </div>
       </div>
     </div>
   );

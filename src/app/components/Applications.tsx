@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { Eye, Filter, Mail, Pencil, Plus, Trash2 } from "lucide-react";
+import { Download, Eye, Filter, Mail, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +36,7 @@ import {
 } from "../../services/applicationEmailService";
 import {
   deleteApplication,
+  exportJobApplications,
   getAllApplications,
   updateApplicationStatus,
 } from "../../services/jobApplicationService";
@@ -167,6 +168,7 @@ export function Applications() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
   const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]>("All");
   const [updatingStatusId, setUpdatingStatusId] = useState<string | number | null>(null);
   const [deletingId, setDeletingId] = useState<string | number | null>(null);
@@ -335,6 +337,36 @@ export function Applications() {
       }
     } finally {
       setUpdatingStatusId(null);
+    }
+  }
+
+  async function handleExportApplications() {
+    if (isExporting) {
+      return;
+    }
+
+    setActionError(null);
+    setIsExporting(true);
+
+    try {
+      const result = await exportJobApplications();
+      const objectUrl = URL.createObjectURL(result.blob);
+      const anchor = window.document.createElement("a");
+
+      anchor.href = objectUrl;
+      anchor.download = result.fileName;
+      window.document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setActionError(err.message);
+      } else {
+        setActionError("Unable to export applications.");
+      }
+    } finally {
+      setIsExporting(false);
     }
   }
 
@@ -521,13 +553,24 @@ export function Applications() {
           <h1 className="text-[28px] font-medium mb-1">Applications</h1>
           <p className="text-muted-foreground">Manage all your job applications</p>
         </div>
-        <Link
-          to="/applications/new"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          New Application
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => void handleExportApplications()}
+            disabled={isExporting}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-border rounded-lg hover:bg-[#fafafa] transition-colors disabled:opacity-60"
+          >
+            <Download className="w-4 h-4" />
+            {isExporting ? "Exporting..." : "Export to Excel"}
+          </button>
+          <Link
+            to="/applications/new"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            New Application
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
