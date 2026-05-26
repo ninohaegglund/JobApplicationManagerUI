@@ -10,6 +10,109 @@ import type {
 } from "../../types/calendarEvents";
 import type { JobApplication } from "../../types/jobApplications";
 
+const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
+
+interface WeekBucket {
+  start: Date;
+  count: number;
+}
+
+function parseValidDate(value: string): Date | null {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date;
+}
+
+function getStartOfWeek(date: Date, weekStartsOn = 1): Date {
+  const result = new Date(date);
+  const day = result.getDay();
+  const diff = (day < weekStartsOn ? 7 : 0) + day - weekStartsOn;
+
+  result.setDate(result.getDate() - diff);
+  result.setHours(0, 0, 0, 0);
+
+  return result;
+}
+
+function formatWeekKey(weekStart: Date): string {
+  const year = weekStart.getFullYear();
+  const month = String(weekStart.getMonth() + 1).padStart(2, "0");
+  const day = String(weekStart.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function formatWeekRange(weekStart: Date): string {
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+
+  const startLabel = weekStart.toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+  });
+  const endLabel = weekEnd.toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+  });
+
+  if (weekStart.getFullYear() === weekEnd.getFullYear()) {
+    return `${startLabel} - ${endLabel}`;
+  }
+
+  return `${startLabel} ${weekStart.getFullYear()} - ${endLabel} ${weekEnd.getFullYear()}`;
+}
+
+function groupApplicationsByWeek(applications: JobApplication[]): WeekBucket[] {
+  const buckets = new Map<string, WeekBucket>();
+
+  applications.forEach((application) => {
+    const createdAt = parseValidDate(application.createdAt);
+
+    if (!createdAt) {
+      return;
+    }
+
+    const weekStart = getStartOfWeek(createdAt);
+    const key = formatWeekKey(weekStart);
+    const existing = buckets.get(key);
+
+    if (existing) {
+      existing.count += 1;
+    } else {
+      buckets.set(key, { start: weekStart, count: 1 });
+    }
+  });
+
+  return Array.from(buckets.values()).sort(
+    (left, right) => left.start.getTime() - right.start.getTime()
+  );
+}
+
+function formatAverage(value: number): string {
+  if (!Number.isFinite(value)) {
+    return "0";
+  }
+
+  const rounded = Math.round(value * 10) / 10;
+
+  return rounded % 1 === 0 ? String(rounded) : rounded.toFixed(1);
+}
+
+function formatPercentage(value: number): string {
+  if (!Number.isFinite(value)) {
+    return "0%";
+  }
+
+  const rounded = Math.round(value * 10) / 10;
+  const formatted = rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1);
+
+  return `${formatted}%`;
+}
+
 const eventTypeValueToLabel: Record<number, CalendarEventTypeLabel> = {
   0: "Interview",
   1: "Follow-up",
@@ -183,7 +286,57 @@ export function Dashboard() {
     const draft = applications.filter((application) => application.status === "Draft").length;
     const applied = applications.filter((application) => application.status === "Applied").length;
     const interview = applications.filter((application) => application.status === "Interview").length;
+    const offer = applications.filter((application) => application.status === "Offer").length;
     const rejected = applications.filter((application) => application.status === "Rejected").length;
+    const appliedTotal = total - draft;
+    const responded = interview + offer + rejected;
+    const responseRate = appliedTotal > 0 ? (responded / appliedTotal) * 100 : 0;
+
+    const now = new Date();
+    const thisWeekStart = getStartOfWeek(now);
+    const lastWeekStart = new Date(thisWeekStart);
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+    const weeklyBuckets = groupApplicationsByWeek(applications);
+    const weeklyBucketMap = new Map(
+      weeklyBuckets.map((bucket) => [formatWeekKey(bucket.start), bucket])
+    );
+
+    const createdThisWeek =
+      weeklyBucketMap.get(formatWeekKey(thisWeekStart))?.count ?? 0;
+    const createdLastWeek =
+      weeklyBucketMap.get(formatWeekKey(lastWeekStart))?.count ?? 0;
+
+    const createdDates = applications
+      .map((application) => parseValidDate(application.createdAt))
+      .filter((date): date is Date => date !== null);
+    const totalCreated = createdDates.length;
+
+    let averagePerWeek = 0;
+
+    if (totalCreated > 0) {
+      const earliestDate = new Date(
+        Math.min(...createdDates.map((date) => date.getTime()))
+      );
+      const rangeStart = getStartOfWeek(earliestDate);
+      const rangeEnd = getStartOfWeek(now);
+      const weeksInRange =
+        Math.floor((rangeEnd.getTime() - rangeStart.getTime()) / MS_PER_WEEK) + 1;
+
+      averagePerWeek = weeksInRange > 0 ? totalCreated / weeksInRange : totalCreated;
+    }
+
+    let bestWeekCount = 0;
+    let bestWeekLabel = "No data";
+
+    if (weeklyBuckets.length > 0) {
+      const bestBucket = weeklyBuckets.reduce((best, current) =>
+        current.count > best.count ? current : best
+      );
+
+      bestWeekCount = bestBucket.count;
+      bestWeekLabel = `Week of ${formatWeekRange(bestBucket.start)}`;
+    }
 
     return [
       { label: "Total Applications", value: String(total), change: "Live data", color: "text-foreground" },
@@ -191,6 +344,36 @@ export function Dashboard() {
       { label: "Applied", value: String(applied), change: "Current", color: "text-blue-600" },
       { label: "Interviews", value: String(interview), change: "Current", color: "text-green-600" },
       { label: "Rejected", value: String(rejected), change: "Current", color: "text-muted-foreground" },
+      {
+        label: "Applications Created This Week",
+        value: String(createdThisWeek),
+        change: `Week of ${formatWeekRange(thisWeekStart)}`,
+        color: "text-foreground",
+      },
+      {
+        label: "Applications Created Last Week",
+        value: String(createdLastWeek),
+        change: `Week of ${formatWeekRange(lastWeekStart)}`,
+        color: "text-foreground",
+      },
+      {
+        label: "Average Applications Per Week",
+        value: formatAverage(averagePerWeek),
+        change: "Since first application",
+        color: "text-foreground",
+      },
+      {
+        label: "Best Week By Applications",
+        value: String(bestWeekCount),
+        change: bestWeekLabel,
+        color: "text-foreground",
+      },
+      {
+        label: "Response Rate",
+        value: formatPercentage(responseRate),
+        change: "Interview/Offer/Rejected vs applied",
+        color: "text-foreground",
+      },
     ];
   }, [applications]);
 
