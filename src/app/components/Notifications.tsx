@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "react-router";
 import { useNotifications } from "../../context/NotificationsContext";
+import { useLanguage } from "../../context/LanguageContext";
 import type { NotificationItem, NotificationType } from "../data/jobTrackerMockData";
 
 function formatNotificationDate(value: string): string {
@@ -43,6 +44,7 @@ function getApplicationLink(notification: NotificationItem): string | null {
 }
 
 export function Notifications() {
+  const { t } = useLanguage();
   const { notifications, unreadCount, markAllAsRead, markAsRead } = useNotifications();
 
   const sortedNotifications = useMemo(
@@ -58,8 +60,8 @@ export function Notifications() {
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[28px] font-medium mb-1">Notifications</h1>
-          <p className="text-muted-foreground">Stay on top of reminders and updates</p>
+          <h1 className="text-[28px] font-medium mb-1">{t("nav.notifications")}</h1>
+          <p className="text-muted-foreground">{t("pages.notifications.subtitle")}</p>
         </div>
         <button
           type="button"

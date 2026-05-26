@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard,
@@ -12,9 +12,12 @@ import {
   Bell,
   ChevronDown,
   LogOut,
+  type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../context/NotificationsContext";
+import { useLanguage, type TranslationKey } from "../../context/LanguageContext";
+import { LanguageSwitch } from "./LanguageSwitch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,28 +27,61 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 
-const navigation = [
-  { name: "Dashboard", path: "/", icon: LayoutDashboard },
-  { name: "Applications", path: "/applications", icon: Briefcase },
-  { name: "Calendar", path: "/calendar", icon: CalendarDays },
-  { name: "Notifications", path: "/notifications", icon: Bell },
-  { name: "Profile", path: "/profile", icon: User },
-  { name: "CV Documents", path: "/cv-documents", icon: FileText },
-  { name: "Exports", path: "/exports", icon: Download },
-  { name: "Settings", path: "/settings", icon: SettingsIcon },
+const navigation: Array<{
+  labelKey: TranslationKey;
+  path: string;
+  icon: LucideIcon;
+}> = [
+  { labelKey: "nav.dashboard", path: "/", icon: LayoutDashboard },
+  { labelKey: "nav.applications", path: "/applications", icon: Briefcase },
+  { labelKey: "nav.calendar", path: "/calendar", icon: CalendarDays },
+  { labelKey: "nav.notifications", path: "/notifications", icon: Bell },
+  { labelKey: "nav.profile", path: "/profile", icon: User },
+  { labelKey: "nav.cvDocuments", path: "/cv-documents", icon: FileText },
+  { labelKey: "nav.exports", path: "/exports", icon: Download },
+  { labelKey: "nav.settings", path: "/settings", icon: SettingsIcon },
 ];
+
+function getRouteTitleKey(pathname: string): TranslationKey {
+  if (pathname === "/") {
+    return "nav.dashboard";
+  }
+
+  if (
+    pathname === "/applications/new" ||
+    /^\/applications\/[^/]+\/edit$/.test(pathname)
+  ) {
+    return "pages.createApplication.title";
+  }
+
+  const routeTitle = navigation.find(
+    (item) => item.path !== "/" && pathname.startsWith(item.path)
+  );
+
+  return routeTitle?.labelKey ?? "nav.dashboard";
+}
 
 export function Root() {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const { notifications, unreadCount } = useNotifications();
+  const { t } = useLanguage();
 
-  const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : "Authenticated User";
+  const pageTitleKey = useMemo(
+    () => getRouteTitleKey(location.pathname),
+    [location.pathname]
+  );
+
+  useEffect(() => {
+    window.document.title = `${t(pageTitleKey)} | JobTracker`;
+  }, [pageTitleKey, t]);
+
+  const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : t("header.authenticatedUser");
   const initials = user
     ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
     : "U";
-  const subtitle = user?.email ?? "Identity account";
+  const subtitle = user?.email ?? t("header.identityAccount");
 
   const latestUnreadNotifications = useMemo(() => {
     return [...notifications]
@@ -104,7 +140,7 @@ export function Root() {
                 `}
               >
                 <Icon className="w-5 h-5" strokeWidth={1.5} />
-                <span className="text-[15px]">{item.name}</span>
+                <span className="text-[15px]">{t(item.labelKey)}</span>
               </Link>
             );
           })}
@@ -128,7 +164,7 @@ export function Root() {
             className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 bg-white border border-border rounded-lg hover:bg-[#fafafa] transition-colors text-sm"
           >
             <LogOut className="w-4 h-4" />
-            Sign Out
+            {t("header.signOut")}
           </button>
         </div>
       </aside>
@@ -142,13 +178,14 @@ export function Root() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search applications, companies..."
+                placeholder={t("header.searchPlaceholder")}
                 className="w-full pl-10 pr-4 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
               />
             </div>
           </div>
 
           <div className="flex items-center gap-3">
+            <LanguageSwitch />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="relative p-2 hover:bg-[#fafafa] rounded-lg transition-colors">
@@ -162,11 +199,11 @@ export function Root() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-80 p-2">
                 <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  Unread notifications
+                  {t("header.unreadNotifications")}
                 </DropdownMenuLabel>
                 {latestUnreadNotifications.length === 0 && (
                   <div className="px-2 py-3 text-sm text-muted-foreground">
-                    No unread notifications.
+                    {t("header.noUnreadNotifications")}
                   </div>
                 )}
                 {latestUnreadNotifications.map((notification) => (
@@ -191,7 +228,7 @@ export function Root() {
                   onSelect={() => navigate("/notifications")}
                   className="cursor-pointer"
                 >
-                  View all notifications
+                  {t("header.viewAllNotifications")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

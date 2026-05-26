@@ -9,6 +9,7 @@ import {
   updateCalendarEvent,
 } from "../../services/calendarEventsService";
 import { getAllApplications } from "../../services/jobApplicationService";
+import { useLanguage } from "../../context/LanguageContext";
 import type {
   CalendarEventCreateRequest,
   CalendarEventResponse,
@@ -697,6 +698,7 @@ function CalendarEventDetailsModal({
 }
 
 export function Calendar() {
+  const { t } = useLanguage();
   const [visibleDate, setVisibleDate] = useState<Date>(
     () => new Date()
   );
@@ -1008,8 +1010,8 @@ export function Calendar() {
   return (
     <div className="p-8 space-y-6">
       <div>
-        <h1 className="text-[28px] font-medium mb-1">Calendar</h1>
-        <p className="text-muted-foreground">Track interviews, deadlines, and follow-ups</p>
+        <h1 className="text-[28px] font-medium mb-1">{t("nav.calendar")}</h1>
+        <p className="text-muted-foreground">{t("pages.calendar.subtitle")}</p>
       </div>
 
       {calendarError && (

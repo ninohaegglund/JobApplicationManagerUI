@@ -19,6 +19,7 @@ import {
   previewCVDocument,
   uploadCVDocument,
 } from "../../services/cvDocumentsService";
+import { useLanguage } from "../../context/LanguageContext";
 import type { CVDocument } from "../../types/cvDocuments";
 
 function getFormatStyles(format: string): {
@@ -52,6 +53,7 @@ function getFormatStyles(format: string): {
 }
 
 export function CVDocuments() {
+  const { t } = useLanguage();
   const [cvDocuments, setCvDocuments] = useState<CVDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -238,8 +240,8 @@ export function CVDocuments() {
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[28px] font-medium mb-1">CV Documents</h1>
-          <p className="text-muted-foreground">Manage your curriculum vitae versions</p>
+          <h1 className="text-[28px] font-medium mb-1">{t("nav.cvDocuments")}</h1>
+          <p className="text-muted-foreground">{t("pages.cvDocuments.subtitle")}</p>
         </div>
         <>
           <input

@@ -40,6 +40,7 @@ import {
   getAllApplications,
   updateApplicationStatus,
 } from "../../services/jobApplicationService";
+import { useLanguage } from "../../context/LanguageContext";
 import { EmailType, type ApplicationEmailDto } from "../../types/applicationEmails";
 import type { ApplicationStatus, JobApplication } from "../../types/jobApplications";
 
@@ -164,6 +165,7 @@ function normalizeDateTimeInput(value: string): string {
 }
 
 export function Applications() {
+  const { t } = useLanguage();
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -550,8 +552,8 @@ export function Applications() {
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[28px] font-medium mb-1">Applications</h1>
-          <p className="text-muted-foreground">Manage all your job applications</p>
+          <h1 className="text-[28px] font-medium mb-1">{t("nav.applications")}</h1>
+          <p className="text-muted-foreground">{t("pages.applications.subtitle")}</p>
         </div>
         <div className="flex items-center gap-3">
           <button

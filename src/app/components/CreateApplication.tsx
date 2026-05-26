@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { ArrowLeft, Save } from "lucide-react";
 import { createApplication } from "../../services/jobApplicationService";
 import { ApiError } from "../../services/httpClient";
+import { useLanguage } from "../../context/LanguageContext";
 import type { ApplicationStatus } from "../../types/jobApplications";
 
 const cvVersions = [
@@ -12,6 +13,7 @@ const cvVersions = [
 ];
 
 export function CreateApplication() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const [companyName, setCompanyName] = useState("");
@@ -60,10 +62,10 @@ export function CreateApplication() {
       <div>
         <Link to="/applications" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
           <ArrowLeft className="w-4 h-4" />
-          Back to Applications
+          {t("pages.createApplication.backToApplications")}
         </Link>
-        <h1 className="text-[28px] font-medium mb-1">Create New Application</h1>
-        <p className="text-muted-foreground">Add a new job application to track</p>
+        <h1 className="text-[28px] font-medium mb-1">{t("pages.createApplication.title")}</h1>
+        <p className="text-muted-foreground">{t("pages.createApplication.subtitle")}</p>
       </div>
 
       <div className="max-w-4xl space-y-6">

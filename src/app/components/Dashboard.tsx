@@ -4,6 +4,7 @@ import { Plus, UserCircle, TrendingUp } from "lucide-react";
 import { ApiError } from "../../services/httpClient";
 import { getUpcomingCalendarEvents } from "../../services/calendarEventsService";
 import { getAllApplications } from "../../services/jobApplicationService";
+import { useLanguage } from "../../context/LanguageContext";
 import type {
   CalendarEventResponse,
   CalendarEventTypeLabel,
@@ -212,6 +213,7 @@ function formatEventDateTime(value: string): string {
 }
 
 export function Dashboard() {
+  const { t } = useLanguage();
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<DashboardCalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -406,8 +408,8 @@ export function Dashboard() {
   return (
     <div className="p-8 space-y-8">
       <div>
-        <h1 className="text-[28px] font-medium mb-1">Dashboard</h1>
-        <p className="text-muted-foreground">Overview of your job application progress</p>
+        <h1 className="text-[28px] font-medium mb-1">{t("nav.dashboard")}</h1>
+        <p className="text-muted-foreground">{t("pages.dashboard.subtitle")}</p>
       </div>
 
       {/* Stats Grid */}

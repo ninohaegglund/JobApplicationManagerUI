@@ -2,8 +2,10 @@ import { useState } from "react";
 import { Download } from "lucide-react";
 import { ApiError } from "../../services/httpClient";
 import { exportJobApplications } from "../../services/jobApplicationService";
+import { useLanguage } from "../../context/LanguageContext";
 
 export function Exports() {
+  const { t } = useLanguage();
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,8 +43,8 @@ export function Exports() {
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[28px] font-medium mb-1">Exports</h1>
-          <p className="text-muted-foreground">Download your job application data</p>
+          <h1 className="text-[28px] font-medium mb-1">{t("nav.exports")}</h1>
+          <p className="text-muted-foreground">{t("pages.exports.subtitle")}</p>
         </div>
         <button
           type="button"

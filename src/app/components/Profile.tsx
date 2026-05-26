@@ -1,11 +1,14 @@
 import { Save, User } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
 
 export function Profile() {
+  const { t } = useLanguage();
+
   return (
     <div className="p-8 space-y-6">
       <div>
-        <h1 className="text-[28px] font-medium mb-1">Profile</h1>
-        <p className="text-muted-foreground">Manage your applicant information</p>
+        <h1 className="text-[28px] font-medium mb-1">{t("nav.profile")}</h1>
+        <p className="text-muted-foreground">{t("pages.profile.subtitle")}</p>
       </div>
 
       <div className="max-w-3xl space-y-6">

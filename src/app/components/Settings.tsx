@@ -1,19 +1,33 @@
 import { Save } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
+import { LanguageSwitch } from "./LanguageSwitch";
 
 export function Settings() {
+  const { t } = useLanguage();
+
   return (
     <div className="p-8 space-y-6">
       <div>
-        <h1 className="text-[28px] font-medium mb-1">Settings</h1>
-        <p className="text-muted-foreground">Configure your application preferences</p>
+        <h1 className="text-[28px] font-medium mb-1">{t("nav.settings")}</h1>
+        <p className="text-muted-foreground">{t("pages.settings.subtitle")}</p>
       </div>
 
       <div className="max-w-3xl space-y-6">
         {/* General Settings */}
         <div className="bg-white rounded-lg border border-border p-6 space-y-5">
-          <h2 className="text-[17px] font-medium">General</h2>
+          <h2 className="text-[17px] font-medium">{t("settings.general")}</h2>
 
           <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium text-sm mb-1">{t("settings.language.title")}</div>
+                <div className="text-xs text-muted-foreground">
+                  {t("settings.language.description")}
+                </div>
+              </div>
+              <LanguageSwitch />
+            </div>
+
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-medium text-sm mb-1">Email Notifications</div>
