@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { Download, Eye, Filter, Mail, Pencil, Plus, Trash2 } from "lucide-react";
+import { Download, Eye, Filter, Mail, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -186,6 +186,18 @@ export function Applications() {
   const [emailDetails, setEmailDetails] = useState<ApplicationEmailDto | null>(null);
   const [emailPendingDelete, setEmailPendingDelete] = useState<ApplicationEmailDto | null>(null);
   const [deletingEmailId, setDeletingEmailId] = useState<number | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearch(searchInput);
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [searchInput]);
 
   useEffect(() => {
     let isMounted = true;
@@ -196,7 +208,7 @@ export function Applications() {
       setActionError(null);
 
       try {
-        const data = await getAllApplications();
+        const data = await getAllApplications(debouncedSearch);
 
         if (isMounted) {
           setApplications(data);
@@ -221,7 +233,7 @@ export function Applications() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [debouncedSearch]);
 
   useEffect(() => {
     const applicationId = emailApplication?.id;
@@ -577,10 +589,32 @@ export function Applications() {
 
       {/* Filters */}
       <div className="flex items-center gap-3">
-        <button className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-border rounded-lg hover:bg-[#fafafa] transition-colors">
-          <Filter className="w-4 h-4" />
-          Filter
-        </button>
+        <div className="flex items-center gap-3 flex-1">
+          <button className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-border rounded-lg hover:bg-[#fafafa] transition-colors">
+            <Filter className="w-4 h-4" />
+            Filter
+          </button>
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="Search company or role"
+              className="w-full bg-white border border-border rounded-lg text-sm pl-9 pr-10 py-2 focus:outline-none focus:border-border"
+            />
+            {searchInput.trim() && (
+              <button
+                type="button"
+                onClick={() => setSearchInput("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-[#fafafa] hover:text-foreground transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
         <div className="flex gap-2">
           {filters.map((filter) => (
             <button

@@ -67,10 +67,15 @@ export async function createApplication(
   );
 }
 
-export async function getAllApplications(): Promise<JobApplication[]> {
+export async function getAllApplications(search?: string): Promise<JobApplication[]> {
+  const trimmedSearch = search?.trim();
+  const endpoint = trimmedSearch
+    ? `/api/JobApplications?${new URLSearchParams({ search: trimmedSearch }).toString()}`
+    : "/api/JobApplications";
+
   return apiRequest<JobApplication[]>(
     JOB_APPLICATION_API_BASE_URL,
-    "/api/JobApplications",
+    endpoint,
     {
       method: "GET",
       requiresAuth: true,

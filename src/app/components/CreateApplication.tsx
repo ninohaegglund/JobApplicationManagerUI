@@ -6,12 +6,6 @@ import { ApiError } from "../../services/httpClient";
 import { useLanguage } from "../../context/LanguageContext";
 import type { ApplicationStatus } from "../../types/jobApplications";
 
-const cvVersions = [
-  { id: 1, name: "Standard CV - Full Stack", version: "v2.3", date: "2026-04-10" },
-  { id: 2, name: "Frontend Focused CV", version: "v1.5", date: "2026-04-08" },
-  { id: 3, name: "Leadership CV", version: "v1.2", date: "2026-03-25" },
-];
-
 export function CreateApplication() {
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -140,23 +134,6 @@ export function CreateApplication() {
             )}
           </div>
 
-          {/* CV Document Selection */}
-          <div className="bg-white rounded-lg border border-border p-6 space-y-5">
-            <h2 className="text-[17px] font-medium">Select CV Version</h2>
-            <div className="space-y-2">
-              {cvVersions.map((cv) => (
-                <label key={cv.id} className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-[#fafafa] cursor-pointer transition-colors">
-                  <input type="radio" name="cv" className="w-4 h-4" />
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">{cv.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {cv.version} • Updated {cv.date}
-                    </div>
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">
