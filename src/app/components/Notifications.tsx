@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Link } from "react-router";
 import { useNotifications } from "../../context/NotificationsContext";
 import { useLanguage } from "../../context/LanguageContext";
-import type { NotificationItem, NotificationType } from "../data/jobTrackerMockData";
+import type { NotificationItem, NotificationType } from "../../types/notifications";
 
 function formatNotificationDate(value: string): string {
   const date = new Date(value);
@@ -45,7 +45,15 @@ function getApplicationLink(notification: NotificationItem): string | null {
 
 export function Notifications() {
   const { t } = useLanguage();
-  const { notifications, unreadCount, markAllAsRead, markAsRead } = useNotifications();
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    error,
+    refreshNotifications,
+    markAllAsRead,
+    markAsRead,
+  } = useNotifications();
 
   const sortedNotifications = useMemo(
     () =>
@@ -65,8 +73,8 @@ export function Notifications() {
         </div>
         <button
           type="button"
-          onClick={markAllAsRead}
-          disabled={unreadCount === 0}
+          onClick={() => void markAllAsRead()}
+          disabled={unreadCount === 0 || loading}
           className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-border rounded-lg hover:bg-[#fafafa] transition-colors text-sm disabled:opacity-60"
         >
           Mark all as read
@@ -74,63 +82,81 @@ export function Notifications() {
       </div>
 
       <div className="bg-white rounded-lg border border-border divide-y">
-        {sortedNotifications.map((notification) => {
-          const applicationLink = getApplicationLink(notification);
+        {loading && (
+          <div className="p-6 text-sm text-muted-foreground">Loading notifications...</div>
+        )}
 
-          return (
-            <div
-              key={notification.id}
-              className={`p-6 flex items-start justify-between gap-6 ${
-                notification.read
-                  ? "bg-white"
-                  : "bg-[#fafafa] border-l-4 border-blue-500 pl-5"
-              }`}
+        {!loading && error && (
+          <div className="p-6 flex items-center justify-between gap-4">
+            <p className="text-sm text-red-600">{error}</p>
+            <button
+              type="button"
+              onClick={() => void refreshNotifications()}
+              className="px-3 py-2 text-xs bg-white border border-border rounded-lg hover:bg-[#fafafa] transition-colors"
             >
-              <div className="space-y-2 flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-medium">{notification.title}</h3>
-                  {!notification.read && (
-                    <span className="text-[11px] text-blue-600 font-medium">Unread</span>
-                  )}
-                  <span className={`text-[11px] px-2 py-0.5 rounded border ${getNotificationTypeStyles(notification.type)}`}>
-                    {notification.type}
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground">{notification.message}</p>
-                <div className="text-xs text-muted-foreground flex flex-wrap gap-2">
-                  <span>{formatNotificationDate(notification.createdAt)}</span>
-                  {notification.application && (
-                    <span>
-                      {notification.application.company}
-                      {notification.application.role ? ` • ${notification.application.role}` : ""}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-col items-end gap-2">
-                {!notification.read && (
-                  <button
-                    type="button"
-                    onClick={() => markAsRead(notification.id)}
-                    className="px-3 py-2 text-xs bg-white border border-border rounded-lg hover:bg-[#fafafa] transition-colors"
-                  >
-                    Mark as read
-                  </button>
-                )}
-                {applicationLink && (
-                  <Link
-                    to={applicationLink}
-                    className="px-3 py-2 text-xs bg-white border border-border rounded-lg hover:bg-[#fafafa] transition-colors"
-                  >
-                    View application
-                  </Link>
-                )}
-              </div>
-            </div>
-          );
-        })}
+              Retry
+            </button>
+          </div>
+        )}
 
-        {sortedNotifications.length === 0 && (
+        {!loading && !error &&
+          sortedNotifications.map((notification) => {
+            const applicationLink = getApplicationLink(notification);
+
+            return (
+              <div
+                key={notification.id}
+                className={`p-6 flex items-start justify-between gap-6 ${
+                  notification.read
+                    ? "bg-white"
+                    : "bg-[#fafafa] border-l-4 border-blue-500 pl-5"
+                }`}
+              >
+                <div className="space-y-2 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-medium">{notification.title}</h3>
+                    {!notification.read && (
+                      <span className="text-[11px] text-blue-600 font-medium">Unread</span>
+                    )}
+                    <span className={`text-[11px] px-2 py-0.5 rounded border ${getNotificationTypeStyles(notification.type)}`}>
+                      {notification.type}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{notification.message}</p>
+                  <div className="text-xs text-muted-foreground flex flex-wrap gap-2">
+                    <span>{formatNotificationDate(notification.createdAt)}</span>
+                    {notification.application && (
+                      <span>
+                        {notification.application.company}
+                        {notification.application.role ? ` • ${notification.application.role}` : ""}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  {!notification.read && (
+                    <button
+                      type="button"
+                      onClick={() => void markAsRead(notification.id)}
+                      className="px-3 py-2 text-xs bg-white border border-border rounded-lg hover:bg-[#fafafa] transition-colors"
+                    >
+                      Mark as read
+                    </button>
+                  )}
+                  {applicationLink && (
+                    <Link
+                      to={applicationLink}
+                      className="px-3 py-2 text-xs bg-white border border-border rounded-lg hover:bg-[#fafafa] transition-colors"
+                    >
+                      View application
+                    </Link>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+        {!loading && !error && sortedNotifications.length === 0 && (
           <div className="p-6 text-sm text-muted-foreground">No notifications yet.</div>
         )}
       </div>
