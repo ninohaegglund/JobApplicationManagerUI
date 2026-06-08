@@ -105,6 +105,22 @@ function getEmailTypeStyles(type: EmailType): string {
   }
 }
 
+function getApplicationStatusStyles(status: ApplicationStatus): string {
+  switch (status) {
+    case "Rejected":
+      return "border-red-200 bg-red-50 text-red-700";
+    case "Offer":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    case "Interview":
+      return "border-blue-200 bg-blue-50 text-blue-700";
+    case "Applied":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+    case "Draft":
+    default:
+      return "border-gray-200 bg-gray-50 text-gray-700";
+  }
+}
+
 function formatEmailDate(value: string): string {
   const date = new Date(value);
 
@@ -679,7 +695,9 @@ export function Applications() {
 
             {!isLoading && !error && filteredApplications.map((app) => (
               <tr key={app.id} className="hover:bg-[#fafafa] transition-colors">
-                <td className="px-6 py-4 font-medium">{app.companyName}</td>
+                <td className="px-6 py-4 font-medium">
+                  {app.companyName}
+                </td>
                 <td className="px-6 py-4 text-muted-foreground">{app.roleTitle}</td>
                 <td className="px-6 py-4 text-sm text-muted-foreground max-w-[260px]">
                   {app.notes ? (
@@ -695,7 +713,7 @@ export function Applications() {
                       void handleStatusChange(app.id, event.target.value as ApplicationStatus)
                     }
                     disabled={updatingStatusId === app.id || deletingId === app.id}
-                    className="px-2 py-1 text-xs bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
+                    className={`px-2 py-1 text-xs border rounded-lg focus:outline-none focus:border-border ${getApplicationStatusStyles(app.status)}`}
                   >
                     <option value="Draft">Draft</option>
                     <option value="Applied">Applied</option>
