@@ -1,8 +1,18 @@
 import { useMemo } from "react";
-import { Link } from "react-router";
+import { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import { useNotifications } from "../../context/NotificationsContext";
 import { useLanguage } from "../../context/LanguageContext";
-import type { NotificationItem, NotificationType } from "../../types/notifications";
+import type { NotificationType } from "../../types/notifications";
 
 function formatNotificationDate(value: string): string {
   const date = new Date(value);
@@ -35,16 +45,9 @@ function getNotificationTypeStyles(type: NotificationType): string {
   }
 }
 
-function getApplicationLink(notification: NotificationItem): string | null {
-  if (!notification.application) {
-    return null;
-  }
-
-  return `/applications/${notification.application.id}/edit`;
-}
-
 export function Notifications() {
   const { t } = useLanguage();
+  const [clearAllOpen, setClearAllOpen] = useState(false);
   const {
     notifications,
     unreadCount,
@@ -53,6 +56,7 @@ export function Notifications() {
     refreshNotifications,
     markAllAsRead,
     markAsRead,
+    deleteAllNotifications,
   } = useNotifications();
 
   const sortedNotifications = useMemo(
@@ -71,14 +75,24 @@ export function Notifications() {
           <h1 className="text-[28px] font-medium mb-1">{t("nav.notifications")}</h1>
           <p className="text-muted-foreground">{t("pages.notifications.subtitle")}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => void markAllAsRead()}
-          disabled={unreadCount === 0 || loading}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-border rounded-lg hover:bg-[#fafafa] transition-colors text-sm disabled:opacity-60"
-        >
-          Mark all as read
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void markAllAsRead()}
+            disabled={unreadCount === 0 || loading}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-border rounded-lg hover:bg-[#fafafa] transition-colors text-sm disabled:opacity-60"
+          >
+            Mark all as read
+          </button>
+          <button
+            type="button"
+            onClick={() => setClearAllOpen(true)}
+            disabled={loading || notifications.length === 0}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-border rounded-lg hover:bg-[#fafafa] transition-colors text-sm disabled:opacity-60"
+          >
+            Clear all
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg border border-border divide-y">
@@ -101,8 +115,6 @@ export function Notifications() {
 
         {!loading && !error &&
           sortedNotifications.map((notification) => {
-            const applicationLink = getApplicationLink(notification);
-
             return (
               <div
                 key={notification.id}
@@ -143,14 +155,6 @@ export function Notifications() {
                       Mark as read
                     </button>
                   )}
-                  {applicationLink && (
-                    <Link
-                      to={applicationLink}
-                      className="px-3 py-2 text-xs bg-white border border-border rounded-lg hover:bg-[#fafafa] transition-colors"
-                    >
-                      View application
-                    </Link>
-                  )}
                 </div>
               </div>
             );
@@ -160,6 +164,31 @@ export function Notifications() {
           <div className="p-6 text-sm text-muted-foreground">No notifications yet.</div>
         )}
       </div>
+
+      <AlertDialog open={clearAllOpen} onOpenChange={setClearAllOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all notifications?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove all notifications from your view. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                void deleteAllNotifications().finally(() => setClearAllOpen(false));
+              }}
+              disabled={loading}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Clear all
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }

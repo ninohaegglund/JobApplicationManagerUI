@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useAuth } from "./AuthContext";
 import {
+  deleteAllNotifications,
   getNotifications,
   getUnreadNotificationsCount,
   markAllNotificationsAsRead,
@@ -25,6 +26,7 @@ interface NotificationsContextValue {
   refreshNotifications: () => Promise<void>;
   markAsRead: (id: number) => Promise<void>;
   markAllAsRead: () => Promise<void>;
+  deleteAllNotifications: () => Promise<void>;
 }
 
 const NotificationsContext = createContext<NotificationsContextValue | undefined>(undefined);
@@ -154,6 +156,18 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
     }
   }, [getErrorMessage]);
 
+  const clearAllNotifications = useCallback(async () => {
+    setError(null);
+
+    try {
+      await deleteAllNotifications();
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (reason) {
+      setError(getErrorMessage(reason));
+    }
+  }, [getErrorMessage]);
+
   const value = useMemo(
     () => ({
       notifications,
@@ -163,8 +177,18 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
       refreshNotifications,
       markAsRead,
       markAllAsRead,
+      deleteAllNotifications: clearAllNotifications,
     }),
-    [error, loading, markAllAsRead, markAsRead, notifications, refreshNotifications, unreadCount]
+    [
+      clearAllNotifications,
+      error,
+      loading,
+      markAllAsRead,
+      markAsRead,
+      notifications,
+      refreshNotifications,
+      unreadCount,
+    ]
   );
 
   return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;

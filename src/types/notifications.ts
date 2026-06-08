@@ -22,3 +22,7 @@ export interface NotificationItem {
 export interface UnreadNotificationsResponse {
   unreadCount: number;
 }
+
+export interface DeletedNotificationsResponse {
+  deletedCount: number;
+}

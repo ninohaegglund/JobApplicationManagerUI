@@ -1,7 +1,11 @@
 /// <reference types="vite/client" />
 
 import { apiRequest } from "./httpClient";
-import type { NotificationItem, UnreadNotificationsResponse } from "../types/notifications";
+import type {
+  DeletedNotificationsResponse,
+  NotificationItem,
+  UnreadNotificationsResponse,
+} from "../types/notifications";
 
 const NOTIFICATIONS_API_BASE_URL =
   import.meta.env.VITE_NOTIFICATIONS_API_BASE_URL ??
@@ -42,4 +46,15 @@ export async function markAllNotificationsAsRead(): Promise<UnreadNotificationsR
       requiresAuth: true,
     }
   );
+}
+
+export async function deleteAllNotifications(): Promise<DeletedNotificationsResponse> {
+  return apiRequest<DeletedNotificationsResponse>(NOTIFICATIONS_API_BASE_URL, "/api/notifications", {
+    method: "DELETE",
+    requiresAuth: true,
+  });
+}
+
+export async function clearNotifications(): Promise<DeletedNotificationsResponse> {
+  return deleteAllNotifications();
 }
