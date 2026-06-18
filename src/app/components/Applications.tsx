@@ -42,9 +42,13 @@ import {
 } from "../../services/jobApplicationService";
 import { useLanguage } from "../../context/LanguageContext";
 import { EmailType, type ApplicationEmailDto } from "../../types/applicationEmails";
-import type { ApplicationStatus, JobApplication } from "../../types/jobApplications";
+import {
+  ApplicationQuality,
+  type ApplicationStatus,
+  type JobApplication,
+} from "../../types/jobApplications";
 
-const filters: Array<"All" | ApplicationStatus> = [
+const statusFilters: Array<"All" | ApplicationStatus> = [
   "All",
   "Draft",
   "Applied",
@@ -52,6 +56,21 @@ const filters: Array<"All" | ApplicationStatus> = [
   "Offer",
   "Rejected",
 ];
+
+const qualityFilters: Array<"All" | ApplicationQuality> = [
+  "All",
+  ApplicationQuality.Strong,
+  ApplicationQuality.Moderate,
+  ApplicationQuality.Stretch,
+  ApplicationQuality.Unrated,
+];
+
+const applicationQualityOptions = [
+  ApplicationQuality.Unrated,
+  ApplicationQuality.Strong,
+  ApplicationQuality.Moderate,
+  ApplicationQuality.Stretch,
+] as const;
 
 type EmailFormMode = "create" | "edit";
 
@@ -116,6 +135,37 @@ function getApplicationStatusStyles(status: ApplicationStatus): string {
     case "Applied":
       return "border-amber-200 bg-amber-50 text-amber-700";
     case "Draft":
+    default:
+      return "border-gray-200 bg-gray-50 text-gray-700";
+  }
+}
+
+function getApplicationQualityLabel(
+  quality: ApplicationQuality | undefined,
+  t: ReturnType<typeof useLanguage>["t"]
+): string {
+  switch (quality ?? ApplicationQuality.Unrated) {
+    case ApplicationQuality.Strong:
+      return t("applicationQuality.strong");
+    case ApplicationQuality.Moderate:
+      return t("applicationQuality.moderate");
+    case ApplicationQuality.Stretch:
+      return t("applicationQuality.stretch");
+    case ApplicationQuality.Unrated:
+    default:
+      return t("applicationQuality.unrated");
+  }
+}
+
+function getApplicationQualityStyles(quality: ApplicationQuality | undefined): string {
+  switch (quality ?? ApplicationQuality.Unrated) {
+    case ApplicationQuality.Strong:
+      return "border-green-200 bg-green-50 text-green-700";
+    case ApplicationQuality.Moderate:
+      return "border-blue-200 bg-blue-50 text-blue-700";
+    case ApplicationQuality.Stretch:
+      return "border-amber-200 bg-amber-50 text-amber-700";
+    case ApplicationQuality.Unrated:
     default:
       return "border-gray-200 bg-gray-50 text-gray-700";
   }
@@ -187,7 +237,9 @@ export function Applications() {
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]>("All");
+  const [activeFilter, setActiveFilter] = useState<(typeof statusFilters)[number]>("All");
+  const [activeQualityFilter, setActiveQualityFilter] =
+    useState<(typeof qualityFilters)[number]>("All");
   const [updatingStatusId, setUpdatingStatusId] = useState<string | number | null>(null);
   const [deletingId, setDeletingId] = useState<string | number | null>(null);
   const [applicationPendingDelete, setApplicationPendingDelete] = useState<JobApplication | null>(null);
@@ -295,12 +347,15 @@ export function Applications() {
   }, [emailDrawerOpen, emailApplication?.id]);
 
   const filteredApplications = useMemo(() => {
-    if (activeFilter === "All") {
-      return applications;
-    }
+    return applications.filter((application) => {
+      const matchesStatus = activeFilter === "All" || application.status === activeFilter;
+      const matchesQuality =
+        activeQualityFilter === "All" ||
+        (application.applicationQuality ?? ApplicationQuality.Unrated) === activeQualityFilter;
 
-    return applications.filter((application) => application.status === activeFilter);
-  }, [activeFilter, applications]);
+      return matchesStatus && matchesQuality;
+    });
+  }, [activeFilter, activeQualityFilter, applications]);
 
   const emailInputClassName =
     "w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border";
@@ -364,6 +419,37 @@ export function Applications() {
         setActionError(err.message);
       } else {
         setActionError("Unable to update application status.");
+      }
+    } finally {
+      setUpdatingStatusId(null);
+    }
+  }
+
+  async function handleQualityChange(application: JobApplication, quality: ApplicationQuality) {
+    setActionError(null);
+    setUpdatingStatusId(application.id);
+
+    try {
+      await updateApplicationStatus(application.id, {
+        status: application.status,
+        applicationQuality: quality,
+      });
+      setApplications((previous) =>
+        previous.map((item) =>
+          item.id === application.id
+            ? {
+                ...item,
+                applicationQuality: quality,
+                updatedAt: new Date().toISOString(),
+              }
+            : item
+        )
+      );
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setActionError(err.message);
+      } else {
+        setActionError("Unable to update application quality.");
       }
     } finally {
       setUpdatingStatusId(null);
@@ -632,7 +718,7 @@ export function Applications() {
           </div>
         </div>
         <div className="flex gap-2">
-          {filters.map((filter) => (
+          {statusFilters.map((filter) => (
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
@@ -645,6 +731,26 @@ export function Applications() {
               {filter}
             </button>
           ))}
+          <select
+            value={String(activeQualityFilter)}
+            onChange={(event) => {
+              const value = event.target.value;
+              setActiveQualityFilter(
+                value === "All" ? "All" : (Number(value) as ApplicationQuality)
+              );
+            }}
+            className="px-3 py-2 rounded-lg text-sm bg-white border border-border hover:bg-[#fafafa] focus:outline-none focus:border-border"
+            aria-label={t("applicationQuality.label")}
+          >
+            <option value="All">{t("applicationQuality.all")}</option>
+            {qualityFilters
+              .filter((filter): filter is ApplicationQuality => filter !== "All")
+              .map((filter) => (
+                <option key={filter} value={filter}>
+                  {getApplicationQualityLabel(filter, t)}
+                </option>
+              ))}
+          </select>
         </div>
       </div>
 
@@ -662,6 +768,7 @@ export function Applications() {
               <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Company</th>
               <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Role Title</th>
               <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Notes</th>
+              <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">{t("applicationQuality.label")}</th>
               <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Status</th>
               <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Created</th>
               <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Updated</th>
@@ -671,7 +778,7 @@ export function Applications() {
           <tbody className="divide-y divide-border">
             {isLoading && (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-sm text-muted-foreground text-center">
+                <td colSpan={8} className="px-6 py-8 text-sm text-muted-foreground text-center">
                   Loading applications...
                 </td>
               </tr>
@@ -679,7 +786,7 @@ export function Applications() {
 
             {!isLoading && error && (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-sm text-red-700 bg-red-50 text-center">
+                <td colSpan={8} className="px-6 py-8 text-sm text-red-700 bg-red-50 text-center">
                   {error}
                 </td>
               </tr>
@@ -687,7 +794,7 @@ export function Applications() {
 
             {!isLoading && !error && filteredApplications.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-sm text-muted-foreground text-center">
+                <td colSpan={8} className="px-6 py-8 text-sm text-muted-foreground text-center">
                   No applications found.
                 </td>
               </tr>
@@ -705,6 +812,28 @@ export function Applications() {
                   ) : (
                     <span className="text-muted-foreground/70">No notes</span>
                   )}
+                </td>
+                <td className="px-6 py-4">
+                  <select
+                    value={String(app.applicationQuality ?? ApplicationQuality.Unrated)}
+                    onChange={(event) =>
+                      void handleQualityChange(
+                        app,
+                        Number(event.target.value) as ApplicationQuality
+                      )
+                    }
+                    disabled={updatingStatusId === app.id || deletingId === app.id}
+                    className={`px-2 py-1 text-xs border rounded-lg focus:outline-none focus:border-border ${getApplicationQualityStyles(
+                      app.applicationQuality
+                    )}`}
+                    aria-label={`${t("applicationQuality.label")} for ${app.companyName}`}
+                  >
+                    {applicationQualityOptions.map((quality) => (
+                      <option key={quality} value={quality}>
+                        {getApplicationQualityLabel(quality, t)}
+                      </option>
+                    ))}
+                  </select>
                 </td>
                 <td className="px-6 py-4">
                   <select

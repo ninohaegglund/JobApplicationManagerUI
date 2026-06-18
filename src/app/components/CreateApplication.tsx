@@ -4,7 +4,14 @@ import { ArrowLeft, Save } from "lucide-react";
 import { createApplication } from "../../services/jobApplicationService";
 import { ApiError } from "../../services/httpClient";
 import { useLanguage } from "../../context/LanguageContext";
-import type { ApplicationStatus } from "../../types/jobApplications";
+import { ApplicationQuality, type ApplicationStatus } from "../../types/jobApplications";
+
+const applicationQualityOptions = [
+  { value: ApplicationQuality.Unrated, labelKey: "applicationQuality.unrated" },
+  { value: ApplicationQuality.Strong, labelKey: "applicationQuality.strong" },
+  { value: ApplicationQuality.Moderate, labelKey: "applicationQuality.moderate" },
+  { value: ApplicationQuality.Stretch, labelKey: "applicationQuality.stretch" },
+] as const;
 
 export function CreateApplication() {
   const { t } = useLanguage();
@@ -13,6 +20,9 @@ export function CreateApplication() {
   const [companyName, setCompanyName] = useState("");
   const [roleTitle, setRoleTitle] = useState("");
   const [status, setStatus] = useState<ApplicationStatus>("Draft");
+  const [applicationQuality, setApplicationQuality] = useState<ApplicationQuality>(
+    ApplicationQuality.Unrated
+  );
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +45,7 @@ export function CreateApplication() {
         companyName: companyName.trim(),
         roleTitle: roleTitle.trim(),
         status,
+        applicationQuality,
         notes: notes.trim(),
       });
 
@@ -93,20 +104,41 @@ export function CreateApplication() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Status</label>
-              <select
-                value={status}
-                onChange={(event) => setStatus(event.target.value as ApplicationStatus)}
-                className="w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
-                disabled={isSubmitting}
-              >
-                <option value="Draft">Draft</option>
-                <option value="Applied">Applied</option>
-                <option value="Interview">Interview</option>
-                <option value="Offer">Offer</option>
-                <option value="Rejected">Rejected</option>
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">Status</label>
+                <select
+                  value={status}
+                  onChange={(event) => setStatus(event.target.value as ApplicationStatus)}
+                  className="w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
+                  disabled={isSubmitting}
+                >
+                  <option value="Draft">Draft</option>
+                  <option value="Applied">Applied</option>
+                  <option value="Interview">Interview</option>
+                  <option value="Offer">Offer</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">
+                  {t("applicationQuality.label")}
+                </label>
+                <select
+                  value={String(applicationQuality)}
+                  onChange={(event) =>
+                    setApplicationQuality(Number(event.target.value) as ApplicationQuality)
+                  }
+                  className="w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border"
+                  disabled={isSubmitting}
+                >
+                  {applicationQualityOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {t(option.labelKey)}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="space-y-2">

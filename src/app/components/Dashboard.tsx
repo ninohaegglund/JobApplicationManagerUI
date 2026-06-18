@@ -9,7 +9,7 @@ import type {
   CalendarEventResponse,
   CalendarEventTypeLabel,
 } from "../../types/calendarEvents";
-import type { JobApplication } from "../../types/jobApplications";
+import { ApplicationQuality, type JobApplication } from "../../types/jobApplications";
 
 const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
 
@@ -147,6 +147,37 @@ function getStatusColor(status: string) {
       return "bg-gray-50 text-gray-700 border-gray-200";
     case "Rejected":
       return "bg-red-50 text-red-700 border-red-200";
+    default:
+      return "bg-gray-50 text-gray-700 border-gray-200";
+  }
+}
+
+function getApplicationQualityLabel(
+  quality: ApplicationQuality | undefined,
+  t: ReturnType<typeof useLanguage>["t"]
+): string {
+  switch (quality ?? ApplicationQuality.Unrated) {
+    case ApplicationQuality.Strong:
+      return t("applicationQuality.strong");
+    case ApplicationQuality.Moderate:
+      return t("applicationQuality.moderate");
+    case ApplicationQuality.Stretch:
+      return t("applicationQuality.stretch");
+    case ApplicationQuality.Unrated:
+    default:
+      return t("applicationQuality.unrated");
+  }
+}
+
+function getApplicationQualityStyles(quality: ApplicationQuality | undefined): string {
+  switch (quality ?? ApplicationQuality.Unrated) {
+    case ApplicationQuality.Strong:
+      return "bg-green-50 text-green-700 border-green-200";
+    case ApplicationQuality.Moderate:
+      return "bg-blue-50 text-blue-700 border-blue-200";
+    case ApplicationQuality.Stretch:
+      return "bg-amber-50 text-amber-700 border-amber-200";
+    case ApplicationQuality.Unrated:
     default:
       return "bg-gray-50 text-gray-700 border-gray-200";
   }
@@ -290,6 +321,20 @@ export function Dashboard() {
     const interview = applications.filter((application) => application.status === "Interview").length;
     const offer = applications.filter((application) => application.status === "Offer").length;
     const rejected = applications.filter((application) => application.status === "Rejected").length;
+    const strong = applications.filter(
+      (application) => application.applicationQuality === ApplicationQuality.Strong
+    ).length;
+    const moderate = applications.filter(
+      (application) => application.applicationQuality === ApplicationQuality.Moderate
+    ).length;
+    const stretch = applications.filter(
+      (application) => application.applicationQuality === ApplicationQuality.Stretch
+    ).length;
+    const unrated = applications.filter(
+      (application) =>
+        (application.applicationQuality ?? ApplicationQuality.Unrated) ===
+        ApplicationQuality.Unrated
+    ).length;
     const appliedTotal = total - draft;
     const responded = interview + offer + rejected;
     const responseRate = appliedTotal > 0 ? (responded / appliedTotal) * 100 : 0;
@@ -341,7 +386,18 @@ export function Dashboard() {
     }
 
     return [
-      { label: "Total Applications", value: String(total), change: "Live data", color: "text-foreground" },
+      {
+        label: "Total Applications",
+        value: String(total),
+        change: "Live data",
+        color: "text-foreground",
+        breakdown: [
+          { label: t("applicationQuality.strongShort"), value: strong, className: "text-green-700" },
+          { label: t("applicationQuality.moderateShort"), value: moderate, className: "text-blue-700" },
+          { label: t("applicationQuality.stretchShort"), value: stretch, className: "text-amber-700" },
+          { label: t("applicationQuality.unratedShort"), value: unrated, className: "text-gray-700" },
+        ],
+      },
       { label: "Draft", value: String(draft), change: "Current", color: "text-muted-foreground" },
       { label: "Applied", value: String(applied), change: "Current", color: "text-blue-600" },
       { label: "Interviews", value: String(interview), change: "Current", color: "text-green-600" },
@@ -377,7 +433,7 @@ export function Dashboard() {
         color: "text-foreground",
       },
     ];
-  }, [applications]);
+  }, [applications, t]);
 
   const recentApplications = useMemo(() => {
     return [...applications]
@@ -424,6 +480,16 @@ export function Dashboard() {
               <TrendingUp className="w-3 h-3" />
               <span>{stat.change}</span>
             </div>
+            {"breakdown" in stat && stat.breakdown ? (
+              <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 border-t border-border pt-3 text-xs">
+                {stat.breakdown.map((item) => (
+                  <div key={item.label} className="flex items-center justify-between gap-2">
+                    <span className="text-muted-foreground">{item.label}</span>
+                    <span className={`font-medium ${item.className}`}>{item.value}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         ))}
       </div>
@@ -475,9 +541,18 @@ export function Dashboard() {
                     <h3 className="font-medium mb-1">{app.companyName}</h3>
                     <p className="text-sm text-muted-foreground">{app.roleTitle}</p>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs border ${getStatusColor(app.status)}`}>
-                    {app.status}
-                  </span>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <span className={`px-3 py-1 rounded-full text-xs border ${getStatusColor(app.status)}`}>
+                      {app.status}
+                    </span>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs border ${getApplicationQualityStyles(
+                        app.applicationQuality
+                      )}`}
+                    >
+                      {getApplicationQualityLabel(app.applicationQuality, t)}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex gap-4 text-xs text-muted-foreground mt-3">
                   <span>Created {formatDate(app.createdAt)}</span>
