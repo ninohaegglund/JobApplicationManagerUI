@@ -14,7 +14,6 @@ const en = {
   "language.english": "English",
   "language.swedish": "Swedish",
 
-  "header.searchPlaceholder": "Search applications, companies...",
   "header.unreadNotifications": "Unread notifications",
   "header.noUnreadNotifications": "No unread notifications.",
   "header.viewAllNotifications": "View all notifications",
@@ -66,7 +65,6 @@ const sv: Record<TranslationKey, string> = {
   "language.english": "Engelska",
   "language.swedish": "Svenska",
 
-  "header.searchPlaceholder": "Sök bland ansökningar, företag...",
   "header.unreadNotifications": "Olästa aviseringar",
   "header.noUnreadNotifications": "Inga olästa aviseringar.",
   "header.viewAllNotifications": "Visa alla aviseringar",
