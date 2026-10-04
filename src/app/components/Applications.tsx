@@ -240,6 +240,7 @@ export function Applications() {
   const [activeFilter, setActiveFilter] = useState<(typeof statusFilters)[number]>("All");
   const [activeQualityFilter, setActiveQualityFilter] =
     useState<(typeof qualityFilters)[number]>("All");
+  const [activeMonthFilter, setActiveMonthFilter] = useState<"All" | string>("All");
   const [updatingStatusId, setUpdatingStatusId] = useState<string | number | null>(null);
   const [deletingId, setDeletingId] = useState<string | number | null>(null);
   const [applicationPendingDelete, setApplicationPendingDelete] = useState<JobApplication | null>(null);
@@ -346,16 +347,49 @@ export function Applications() {
     };
   }, [emailDrawerOpen, emailApplication?.id]);
 
+  const monthFilters = useMemo(() => {
+    const monthMap = new Map<string, string>();
+
+    applications.forEach((application) => {
+      const createdDate = new Date(application.createdAt);
+
+      if (Number.isNaN(createdDate.getTime())) {
+        return;
+      }
+
+      const monthKey = `${createdDate.getFullYear()}-${String(createdDate.getMonth() + 1).padStart(2, "0")}`;
+      const monthLabel = new Intl.DateTimeFormat(undefined, {
+        month: "long",
+        year: "numeric",
+      }).format(createdDate);
+
+      if (!monthMap.has(monthKey)) {
+        monthMap.set(monthKey, monthLabel);
+      }
+    });
+
+    return Array.from(monthMap.entries()).sort(([leftKey], [rightKey]) =>
+      rightKey.localeCompare(leftKey)
+    );
+  }, [applications]);
+
   const filteredApplications = useMemo(() => {
     return applications.filter((application) => {
+      const createdDate = new Date(application.createdAt);
+      const monthKey =
+        Number.isNaN(createdDate.getTime())
+          ? null
+          : `${createdDate.getFullYear()}-${String(createdDate.getMonth() + 1).padStart(2, "0")}`;
+
       const matchesStatus = activeFilter === "All" || application.status === activeFilter;
       const matchesQuality =
         activeQualityFilter === "All" ||
         (application.applicationQuality ?? ApplicationQuality.Unrated) === activeQualityFilter;
+      const matchesMonth = activeMonthFilter === "All" || monthKey === activeMonthFilter;
 
-      return matchesStatus && matchesQuality;
+      return matchesStatus && matchesQuality && matchesMonth;
     });
-  }, [activeFilter, activeQualityFilter, applications]);
+  }, [activeFilter, activeMonthFilter, activeQualityFilter, applications]);
 
   const emailInputClassName =
     "w-full px-3 py-2 bg-[#fafafa] border border-transparent rounded-lg focus:outline-none focus:border-border";
@@ -750,6 +784,19 @@ export function Applications() {
                   {getApplicationQualityLabel(filter, t)}
                 </option>
               ))}
+          </select>
+          <select
+            value={activeMonthFilter}
+            onChange={(event) => setActiveMonthFilter(event.target.value)}
+            className="px-3 py-2 rounded-lg text-sm bg-white border border-border hover:bg-[#fafafa] focus:outline-none focus:border-border"
+            aria-label="Month filter"
+          >
+            <option value="All">All months</option>
+            {monthFilters.map(([monthKey, monthLabel]) => (
+              <option key={monthKey} value={monthKey}>
+                {monthLabel}
+              </option>
+            ))}
           </select>
         </div>
       </div>
