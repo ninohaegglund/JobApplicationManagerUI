@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard,
   Briefcase,
+  Search,
   CalendarDays,
   User,
   FileText,
@@ -34,6 +35,7 @@ const navigation: Array<{
 }> = [
   { labelKey: "nav.dashboard", path: "/", icon: LayoutDashboard },
   { labelKey: "nav.applications", path: "/applications", icon: Briefcase },
+  { labelKey: "nav.jobTech", path: "/jobtech", icon: Search },
   { labelKey: "nav.calendar", path: "/calendar", icon: CalendarDays },
   { labelKey: "nav.notifications", path: "/notifications", icon: Bell },
   { labelKey: "nav.profile", path: "/profile", icon: User },

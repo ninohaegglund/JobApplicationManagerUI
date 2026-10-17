@@ -7,6 +7,12 @@ import type {
   UpdateApplicationStatusRequest,
 } from "../types/jobApplications";
 
+export const APPLICATIONS_UPDATED_EVENT = "applications-updated";
+
+export function notifyApplicationsUpdated(): void {
+  window.dispatchEvent(new Event(APPLICATIONS_UPDATED_EVENT));
+}
+
 const JOB_APPLICATION_API_BASE_URL =
   import.meta.env.VITE_JOB_APPLICATION_API_BASE_URL ?? "https://localhost:7269";
 

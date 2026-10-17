@@ -23,6 +23,7 @@ const en = {
 
   "nav.dashboard": "Dashboard",
   "nav.applications": "Applications",
+  "nav.jobTech": "JobTech",
   "nav.calendar": "Calendar",
   "nav.notifications": "Notifications",
   "nav.profile": "Profile",
@@ -52,6 +53,7 @@ const en = {
   "pages.cvDocuments.subtitle": "Manage your curriculum vitae versions",
   "pages.exports.subtitle": "Download your job application data",
   "pages.settings.subtitle": "Configure your application preferences",
+  "pages.jobTech.subtitle": "Search authenticated JobTech and Arbetsförmedlingen job listings.",
 
   "settings.general": "General",
   "settings.language.title": "Language",
@@ -74,6 +76,7 @@ const sv: Record<TranslationKey, string> = {
 
   "nav.dashboard": "Översikt",
   "nav.applications": "Ansökningar",
+  "nav.jobTech": "JobTech",
   "nav.calendar": "Kalender",
   "nav.notifications": "Aviseringar",
   "nav.profile": "Profil",
@@ -103,6 +106,7 @@ const sv: Record<TranslationKey, string> = {
   "pages.cvDocuments.subtitle": "Hantera dina CV-versioner",
   "pages.exports.subtitle": "Ladda ner data om dina jobbansökningar",
   "pages.settings.subtitle": "Konfigurera dina appinställningar",
+  "pages.jobTech.subtitle": "Sök bland autentiserade platsannonser från JobTech och Arbetsförmedlingen.",
 
   "settings.general": "Allmänt",
   "settings.language.title": "Språk",

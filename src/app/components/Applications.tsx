@@ -35,6 +35,7 @@ import {
   updateApplicationEmail,
 } from "../../services/applicationEmailService";
 import {
+  APPLICATIONS_UPDATED_EVENT,
   deleteApplication,
   exportJobApplications,
   getAllApplications,
@@ -299,8 +300,15 @@ export function Applications() {
 
     void loadApplications();
 
+    function handleApplicationsUpdated() {
+      void loadApplications();
+    }
+
+    window.addEventListener(APPLICATIONS_UPDATED_EVENT, handleApplicationsUpdated);
+
     return () => {
       isMounted = false;
+      window.removeEventListener(APPLICATIONS_UPDATED_EVENT, handleApplicationsUpdated);
     };
   }, [debouncedSearch]);
 

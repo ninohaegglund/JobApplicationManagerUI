@@ -9,6 +9,7 @@ import { Profile } from "./components/Profile";
 import { CVDocuments } from "./components/CVDocuments";
 import { Exports } from "./components/Exports";
 import { Settings } from "./components/Settings";
+import { JobTech } from "./components/JobTech";
 import { ProtectedRoute } from "../components/auth/ProtectedRoute";
 import { Login } from "../pages/auth/Login";
 import { Register } from "../pages/auth/Register";
@@ -38,6 +39,7 @@ export const router = createBrowserRouter([
       { path: "cv-documents", Component: CVDocuments },
       { path: "exports", Component: Exports },
       { path: "settings", Component: Settings },
+      { path: "jobtech", Component: JobTech },
     ],
   },
 ]);
