@@ -912,6 +912,18 @@ export function Applications() {
                   <div className="flex items-center gap-2">
                     <Tooltip>
                       <TooltipTrigger asChild>
+                        <Link
+                          to={`/applications/${app.id}`}
+                          className="p-1 hover:bg-muted rounded transition-colors"
+                          aria-label={`View application details for ${app.companyName}`}
+                        >
+                          <Eye className="w-4 h-4 text-muted-foreground" />
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">View application</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
                         <button
                           type="button"
                           onClick={() => handleOpenEmails(app)}

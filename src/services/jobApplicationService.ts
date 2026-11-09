@@ -4,6 +4,7 @@ import { ApiError, apiRequest, getStoredToken, handleUnauthorizedResponse } from
 import type {
   CreateJobApplicationRequest,
   JobApplication,
+  UpdateApplicationNotesRequest,
   UpdateApplicationStatusRequest,
 } from "../types/jobApplications";
 
@@ -118,6 +119,21 @@ export async function updateApplicationStatus(
   await apiRequest<unknown>(
     JOB_APPLICATION_API_BASE_URL,
     `/api/JobApplications/${id}/status`,
+    {
+      method: "PATCH",
+      body: payload,
+      requiresAuth: true,
+    }
+  );
+}
+
+export async function updateApplicationNotes(
+  id: string | number,
+  payload: UpdateApplicationNotesRequest
+): Promise<void> {
+  await apiRequest<unknown>(
+    JOB_APPLICATION_API_BASE_URL,
+    `/api/JobApplications/${id}/notes`,
     {
       method: "PATCH",
       body: payload,

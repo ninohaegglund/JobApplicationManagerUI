@@ -20,13 +20,17 @@ export interface UpdateApplicationStatusRequest {
   applicationQuality?: ApplicationQuality;
 }
 
+export interface UpdateApplicationNotesRequest {
+  notes: string | null;
+}
+
 export interface JobApplication {
   id: string | number;
   companyName: string;
   roleTitle: string;
   status: ApplicationStatus;
   applicationQuality: ApplicationQuality;
-  notes: string;
+  notes: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router";
 import { Root } from "./components/Root";
 import { Dashboard } from "./components/Dashboard";
 import { Applications } from "./components/Applications";
+import { ApplicationDetails } from "./components/ApplicationDetails";
 import { CreateApplication } from "./components/CreateApplication";
 import { Calendar } from "./components/Calendar";
 import { Notifications } from "./components/Notifications";
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
       { index: true, Component: Dashboard },
       { path: "applications", Component: Applications },
       { path: "applications/new", Component: CreateApplication },
+      { path: "applications/:id", Component: ApplicationDetails },
       { path: "applications/:id/edit", Component: CreateApplication },
       { path: "calendar", Component: Calendar },
       { path: "notifications", Component: Notifications },
